@@ -114,6 +114,7 @@ contract LendingProtocol is
         }
 
         offerCounter++;
+        // aderyn-fp-next-line(weak-randomness)
         offerId = keccak256(abi.encodePacked("offer", offerCounter, msg.sender, block.timestamp));
 
         loanOffers[offerId] = LoanOffer({
