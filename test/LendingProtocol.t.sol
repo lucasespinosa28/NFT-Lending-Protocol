@@ -130,7 +130,9 @@ contract LendingProtocolTest is Test {
         assertEq(mockNft.ownerOf(BORROWER_NFT_ID), borrower, "Borrower NFT ownership incorrect");
 
         assertTrue(currencyManager.isCurrencySupported(address(weth)), "WETH not supported by CurrencyManager");
-        assertTrue(collectionManager.isCollectionWhitelisted(address(mockNft)), "MockNFT not whitelisted by CollectionManager");
+        assertTrue(
+            collectionManager.isCollectionWhitelisted(address(mockNft)), "MockNFT not whitelisted by CollectionManager"
+        );
     }
 
     function test_MakeStandardLoanOffer_Success() public {
@@ -202,7 +204,6 @@ contract LendingProtocolTest is Test {
         vm.stopPrank();
     }
 
-
     function test_Fail_MakeStandardLoanOffer_UnsupportedCurrency() public {
         vm.startPrank(lender);
 
@@ -230,10 +231,10 @@ contract LendingProtocolTest is Test {
         vm.stopPrank();
     }
 
-     function test_Fail_MakeStandardLoanOffer_UnwhitelistedCollection() public {
+    function test_Fail_MakeStandardLoanOffer_UnwhitelistedCollection() public {
         // Create unwhitelisted NFT
         ERC721Mock unwhitelistedNft = new ERC721Mock("Unlisted NFT", "UNL");
-        
+
         // Mint NFT as owner
         vm.startPrank(owner);
         unwhitelistedNft.mint(borrower, 1);
@@ -292,7 +293,7 @@ contract LendingProtocolTest is Test {
 
         // Remove event expectation since we can't easily predict loanId and dueTime
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
-        
+
         assertTrue(loanId != bytes32(0), "Loan ID should not be zero");
         vm.stopPrank();
 
@@ -313,9 +314,7 @@ contract LendingProtocolTest is Test {
         uint256 netAmount = offerParams.principalAmount - originationFee;
 
         assertEq(
-            weth.balanceOf(lender),
-            lenderWethBalanceBefore - netAmount,
-            "Lender WETH balance after loan incorrect"
+            weth.balanceOf(lender), lenderWethBalanceBefore - netAmount, "Lender WETH balance after loan incorrect"
         );
         assertEq(
             weth.balanceOf(borrower),
@@ -333,7 +332,6 @@ contract LendingProtocolTest is Test {
         assertFalse(acceptedOffer.isActive, "Accepted offer should be inactive");
     }
 
-
     // --- TODO: Add more test cases ---
     // - test_CancelLoanOffer_Success
     // - test_Fail_CancelLoanOffer_NotOwner
@@ -348,4 +346,3 @@ contract LendingProtocolTest is Test {
     // - test_Fail_ClaimCollateral_LoanNotDefaulted
     // - Tests for refinance, renegotiation, collection offers acceptance, etc.
 }
-
