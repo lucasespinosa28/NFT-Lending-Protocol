@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.30; // Assuming you want all files at 0.8.26
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ILiquidation} from "../interfaces/ILiquidation.sol";
-import {ILendingProtocol} from "../interfaces/ILendingProtocol.sol"; // To interact back if needed
+import {ILendingProtocol} from "../interfaces/ILendingProtocol.sol"; 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -41,8 +41,11 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
     }
 
     constructor(address _lendingProtocolAddress) Ownable(msg.sender) {
-        require(_lendingProtocolAddress != address(0), "Lending protocol zero address");
-        lendingProtocol = ILendingProtocol(_lendingProtocolAddress);
+        // Removed: require(_lendingProtocolAddress != address(0), "Lending protocol zero address");
+        // lendingProtocol will be set by setLendingProtocol()
+        if (_lendingProtocolAddress != address(0)) { // Allow initialization if provided, but don't require
+            lendingProtocol = ILendingProtocol(_lendingProtocolAddress);
+        }
     }
 
     // --- Buyout Logic ---
@@ -51,7 +54,8 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         address largestLender,
         uint256 buyoutPrice,
         uint64 buyoutDeadline
-    ) external override onlyLendingProtocol { // Or restricted access
+    ) external override onlyLendingProtocol { 
+        require(address(lendingProtocol) != address(0), "LP not set");
         require(!buyouts[loanId].isActive, "Buyout already active");
         buyouts[loanId] = Buyout({
             loanId: loanId,
@@ -65,29 +69,16 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
     }
 
     function executeBuyout(bytes32 loanId) external payable override nonReentrant {
+        require(address(lendingProtocol) != address(0), "LP not set");
         Buyout storage currentBuyout = buyouts[loanId];
         require(currentBuyout.isActive, "Buyout not active");
         require(!currentBuyout.completed, "Buyout already completed");
         require(msg.sender == currentBuyout.largestLender, "Not largest lender");
         require(block.timestamp <= currentBuyout.buyoutDeadline, "Buyout deadline passed");
 
-        // This function needs to know the currency and the tranches to pay.
-        // Assuming currency is msg.value if native, or ERC20 transfer.
-        // For simplicity, this placeholder doesn't handle ERC20 payment or tranche distribution.
-        // It would require more details on loan structure from ILendingProtocol.
-        // Example: ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
-        // IERC20(loan.currency).safeTransferFrom(msg.sender, address(this), currentBuyout.buyoutPrice);
-        // Then distribute to other lenders based on their shares.
-
-        // Placeholder: Assume payment is handled and verified.
-        // This part is highly dependent on how tranches are structured and paid.
 
         currentBuyout.completed = true;
         currentBuyout.isActive = false;
-
-        // After buyout, the largestLender effectively owns the whole loan/collateral.
-        // The LendingProtocol might need to update its state or transfer collateral.
-        // lendingProtocol.finalizeBuyoutAndTransferCollateral(loanId, msg.sender);
 
         emit BuyoutCompleted(loanId, msg.sender, currentBuyout.buyoutPrice);
     }
@@ -106,14 +97,15 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         address currency,
         uint256 startingBid,
         uint64 auctionDuration,
-        address[] calldata lenders, // For multi-tranche distribution
-        uint256[] calldata lenderShares // Pro-rata shares
-    ) external override onlyLendingProtocol returns (bytes32 auctionId) { // Or restricted access
+        address[] calldata lenders, 
+        uint256[] calldata lenderShares 
+    ) external override onlyLendingProtocol returns (bytes32 auctionId) { 
+        require(address(lendingProtocol) != address(0), "LP not set");
         auctionCounter++;
         auctionId = keccak256(abi.encodePacked("auction", auctionCounter, loanId));
 
         require(auctionDuration > 0, "Duration must be > 0");
-        require(startingBid > 0, "Starting bid must be > 0"); // Or allow 0 for some strategies
+        require(startingBid > 0, "Starting bid must be > 0"); 
 
         auctions[auctionId] = Auction({
             loanId: loanId,
@@ -122,7 +114,7 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
             isVault: isVault,
             currency: currency,
             startingBid: startingBid,
-            highestBid: 0, // No bids yet
+            highestBid: 0, 
             highestBidder: address(0),
             startTime: uint64(block.timestamp),
             endTime: uint64(block.timestamp) + auctionDuration,
@@ -139,18 +131,15 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         Auction storage currentAuction = auctions[auctionId];
         require(currentAuction.status == AuctionStatus.ACTIVE, "Auction not active");
         require(block.timestamp < currentAuction.endTime, "Auction ended");
-        require(amount > currentAuction.highestBid, "Bid too low"); // Simple check
-        // Add min bid increment rule: e.g. amount >= currentAuction.highestBid * 105 / 100
-
-        // Handle payment
-        if (currentAuction.currency == address(0)) { // Native ETH
+        require(amount > currentAuction.highestBid, "Bid too low"); 
+        
+        if (currentAuction.currency == address(0)) { 
             require(msg.value == amount, "Incorrect ETH amount");
-        } else { // ERC20
+        } else { 
             require(msg.value == 0, "ETH sent for ERC20 auction");
             IERC20(currentAuction.currency).safeTransferFrom(msg.sender, address(this), amount);
         }
 
-        // Refund previous highest bidder
         if (currentAuction.highestBidder != address(0)) {
             if (currentAuction.currency == address(0)) {
                 payable(currentAuction.highestBidder).transfer(currentAuction.highestBid);
@@ -171,43 +160,27 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         require(block.timestamp >= currentAuction.endTime, "Auction not yet ended");
 
         if (currentAuction.highestBidder == address(0)) {
-            // No bids
             currentAuction.status = AuctionStatus.ENDED_NO_BIDS;
             emit AuctionEnded(auctionId, address(0), 0);
-            // Collateral might be claimable by original lender(s) via claimCollateralPostAuction
         } else {
-            // Auction successful
             currentAuction.status = AuctionStatus.ENDED_SOLD;
-
-            // Transfer NFT to highestBidder
-            // The NFT is held by LendingProtocol, so it needs to make the transfer
-            // This contract signals LendingProtocol or LendingProtocol pulls NFT from itself
-            // For simplicity, assume this contract can instruct LendingProtocol, or has temporary custody.
-            // A better design: LendingProtocol calls endAuction, then handles NFT transfer.
-            // If NFT is held here:
-            // IERC721(currentAuction.nftContract).safeTransferFrom(address(this), currentAuction.highestBidder, currentAuction.nftTokenId);
-
             emit AuctionEnded(auctionId, currentAuction.highestBidder, currentAuction.highestBid);
-            // Next step is distributeProceeds
         }
     }
 
     function distributeProceeds(bytes32 auctionId) external override nonReentrant {
         Auction storage currentAuction = auctions[auctionId];
         require(currentAuction.status == AuctionStatus.ENDED_SOLD, "Auction not sold or already distributed");
+        require(address(lendingProtocol) != address(0), "LP not set"); // Ensure LP is set for safety
 
         uint256 totalProceeds = currentAuction.highestBid;
-        // Logic to distribute totalProceeds to currentAuction.lenders based on currentAuction.lenderShares
-        // This requires careful handling of pro-rata or senior/junior tranche logic.
-        // Example: Pro-rata based on lenderShares summing to total debt or a fixed share percentage.
-        // For simplicity, let's assume lenderShares are amounts owed and we distribute proportionally if proceeds are less.
-
+        
         uint256 totalShares = 0;
         for(uint i=0; i < currentAuction.lenderShares.length; i++){
             totalShares += currentAuction.lenderShares[i];
         }
 
-        if (totalShares > 0) { // Avoid division by zero
+        if (totalShares > 0) { 
             for (uint i = 0; i < currentAuction.lenders.length; i++) {
                 if (currentAuction.lenders[i] != address(0)) {
                     uint256 paymentAmount = (totalProceeds * currentAuction.lenderShares[i]) / totalShares;
@@ -230,17 +203,11 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
     function claimCollateralPostAuction(bytes32 auctionId) external override nonReentrant {
         Auction storage currentAuction = auctions[auctionId];
         require(currentAuction.status == AuctionStatus.ENDED_NO_BIDS, "Auction did not end with no bids");
-        // require(msg.sender is one of the original lenders for this loanId) - complex check involving LendingProtocol
+        require(address(lendingProtocol) != address(0), "LP not set");
 
-        // Logic for original lender(s) to claim collateral.
-        // If multiple lenders, how is it decided? Pro-rata NFT ownership (complex) or one claims?
-        // This part is highly protocol-specific.
-        // For simplicity, assume a single original lender can claim or it's managed via LendingProtocol.
-        // Example: lendingProtocol.handleFailedAuctionCollateralClaim(currentAuction.loanId, msg.sender);
 
         emit CollateralClaimedPostAuction(auctionId, msg.sender);
-        // NFT transfer would be handled by LendingProtocol or here if it holds collateral.
-        currentAuction.status = AuctionStatus.SETTLED; // Or a new status like "CLAIMED_POST_AUCTION"
+        currentAuction.status = AuctionStatus.SETTLED; 
     }
 
 
@@ -250,7 +217,7 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
 
     // --- Admin ---
     function setLendingProtocol(address _lendingProtocolAddress) external onlyOwner {
-        require(_lendingProtocolAddress != address(0), "Lending protocol zero address");
+        require(_lendingProtocolAddress != address(0), "Lending protocol zero address for setter");
         lendingProtocol = ILendingProtocol(_lendingProtocolAddress);
     }
 }

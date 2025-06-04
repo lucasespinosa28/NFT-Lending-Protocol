@@ -2,7 +2,7 @@
 // Based on OpenZeppelin Contracts (last updated v4.9.3) (mocks/token/ERC721Mock.sol)
 // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/mocks/token/ERC721Mock.sol
 
-pragma solidity ^0.8.20;
+pragma solidity 0.8.30;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";

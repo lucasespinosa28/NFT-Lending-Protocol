@@ -2,7 +2,7 @@
 // Based on OpenZeppelin Contracts (last updated v4.9.3) (mocks/token/ERC20Mock.sol)
 // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/mocks/token/ERC20Mock.sol
 
-pragma solidity ^0.8.20;
+pragma solidity 0.8.30;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -53,7 +53,7 @@ contract ERC20Mock is ERC20, ERC20Burnable {
     /**
      * @dev Function to show internal balance of the contract for testing.
      */
-    function contractBalance() public view returns (uint256) {
+    function contractBalance() external view returns (uint256) {
         return address(this).balance;
     }
 }

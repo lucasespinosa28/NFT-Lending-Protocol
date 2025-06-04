@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.30; // Assuming you want all files at 0.8.26
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol"; // Keep if direct 1155 support is planned
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol"; // Added import
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol"; // For supportsInterface
 
 import {ILendingProtocol} from "../interfaces/ILendingProtocol.sol";
 import {ICurrencyManager} from "../interfaces/ICurrencyManager.sol";
 import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
-import {IVaultsFactory} from "../interfaces/IVaultsFactory.sol"; // If vaults are used as collateral
+import {IVaultsFactory} from "../interfaces/IVaultsFactory.sol"; 
 import {ILiquidation} from "../interfaces/ILiquidation.sol";
 import {IPurchaseBundler} from "../interfaces/IPurchaseBundler.sol";
 
@@ -21,30 +23,29 @@ import {IPurchaseBundler} from "../interfaces/IPurchaseBundler.sol";
  * @notice Core contract for managing NFT-backed loans.
  * @dev Implements ILendingProtocol. This is a placeholder implementation.
  */
-contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
+contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721Receiver { // Added IERC721Receiver
     using SafeERC20 for IERC20;
 
     // --- State Variables ---
 
     ICurrencyManager public currencyManager;
     ICollectionManager public collectionManager;
-    IVaultsFactory public vaultsFactory; // Optional, if supporting vaults
+    IVaultsFactory public vaultsFactory; 
     ILiquidation public liquidationContract;
     IPurchaseBundler public purchaseBundler;
 
     mapping(bytes32 => LoanOffer) public loanOffers;
     mapping(bytes32 => Loan) public loans;
-    mapping(bytes32 => RenegotiationProposal) public renegotiationProposals; // Define RenegotiationProposal struct
+    mapping(bytes32 => RenegotiationProposal) public renegotiationProposals; 
 
     uint256 private offerCounter;
     uint256 private loanCounter;
     uint256 private renegotiationProposalCounter;
 
-    // Define RenegotiationProposal struct if not already part of ILendingProtocol
     struct RenegotiationProposal {
         bytes32 proposalId;
         bytes32 loanId;
-        address proposer; // lender
+        address proposer; 
         address borrower;
         uint256 proposedPrincipalAmount;
         uint256 proposedInterestRateAPR;
@@ -68,13 +69,12 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
     constructor(
         address _currencyManager,
         address _collectionManager,
-        address _vaultsFactory, // address(0) if not used
+        address _vaultsFactory, 
         address _liquidationContract,
         address _purchaseBundler
     ) Ownable(msg.sender) {
         require(_currencyManager != address(0), "CurrencyManager zero address");
         require(_collectionManager != address(0), "CollectionManager zero address");
-        // vaultsFactory can be address(0)
         require(_liquidationContract != address(0), "LiquidationContract zero address");
         require(_purchaseBundler != address(0), "PurchaseBundler zero address");
 
@@ -121,7 +121,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
             durationSeconds: params.durationSeconds,
             expirationTimestamp: params.expirationTimestamp,
             originationFeeRate: params.originationFeeRate,
-            maxSeniorRepayment: 0, // Placeholder, implement tranche logic if needed
+            maxSeniorRepayment: 0, 
             totalCapacity: params.totalCapacity,
             maxPrincipalPerLoan: params.maxPrincipalPerLoan,
             minNumberOfLoans: params.minNumberOfLoans,
@@ -169,16 +169,17 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
         if (address(vaultsFactory) != address(0) && vaultsFactory.isVault(collateralTokenId)) {
             require(vaultsFactory.ownerOfVault(collateralTokenId) == msg.sender, "Not vault owner");
             isCollateralVault = true;
+            // Ensure collateralContract is the address of the vault token contract (which is vaultsFactory itself if it's the ERC721)
+            // If vaults are separate ERC721s, this needs to be the vault's contract address.
+            // Assuming VaultsFactory IS the ERC721 contract for vaults:
+            collateralContract = address(vaultsFactory); 
         } else {
             require(IERC721(collateralContract).ownerOf(collateralTokenId) == msg.sender, "Not NFT owner");
         }
 
-
-        if (isCollateralVault) {
-            IERC721(collateralContract).safeTransferFrom(msg.sender, address(this), collateralTokenId);
-        } else {
-            IERC721(collateralContract).safeTransferFrom(msg.sender, address(this), collateralTokenId);
-        }
+        // Transfer NFT to this contract (escrow)
+        // collateralContract should be the address of the ERC721 token being transferred
+        IERC721(collateralContract).safeTransferFrom(msg.sender, address(this), collateralTokenId);
 
 
         loanCounter++;
@@ -192,7 +193,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
             offerId: offerId,
             borrower: msg.sender,
             lender: offer.lender,
-            nftContract: collateralContract,
+            nftContract: collateralContract, // Storing the actual contract address of the collateral
             nftTokenId: collateralTokenId,
             isVault: isCollateralVault,
             currency: offer.currency,
@@ -249,11 +250,8 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
 
         IERC20(currentLoan.currency).safeTransferFrom(msg.sender, currentLoan.lender, totalRepayment);
 
-        if (currentLoan.isVault) {
-             IERC721(currentLoan.nftContract).safeTransferFrom(address(this), currentLoan.borrower, currentLoan.nftTokenId);
-        } else {
-            IERC721(currentLoan.nftContract).safeTransferFrom(address(this), currentLoan.borrower, currentLoan.nftTokenId);
-        }
+        // currentLoan.nftContract holds the address of the ERC721 token (either original NFT or VaultsFactory)
+        IERC721(currentLoan.nftContract).safeTransferFrom(address(this), currentLoan.borrower, currentLoan.nftTokenId);
 
 
         currentLoan.status = LoanStatus.REPAID;
@@ -370,12 +368,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
 
         currentLoan.status = LoanStatus.DEFAULTED; 
 
-        if (currentLoan.isVault) {
-            IERC721(currentLoan.nftContract).safeTransferFrom(address(this), msg.sender, currentLoan.nftTokenId);
-        } else {
-            IERC721(currentLoan.nftContract).safeTransferFrom(address(this), msg.sender, currentLoan.nftTokenId);
-        }
-
+        IERC721(currentLoan.nftContract).safeTransferFrom(address(this), msg.sender, currentLoan.nftTokenId);
 
         emit CollateralClaimed(loanId, msg.sender, currentLoan.nftContract, currentLoan.nftTokenId);
     }
@@ -411,8 +404,6 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
 
     function isLoanInDefault(bytes32 loanId) external view override returns (bool) {
         Loan storage currentLoan = loans[loanId];
-        // A loan is in default if it's ACTIVE and current time is past dueTime.
-        // Or if it's already marked DEFAULTED.
         if (currentLoan.status == LoanStatus.DEFAULTED) return true;
         return currentLoan.status == LoanStatus.ACTIVE && block.timestamp > currentLoan.dueTime;
     }
@@ -441,6 +432,32 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard {
     function setPurchaseBundler(address _purchaseBundler) external onlyOwner {
         require(_purchaseBundler != address(0), "Zero address");
         purchaseBundler = IPurchaseBundler(_purchaseBundler);
+    }
+
+    // --- IERC721Receiver Implementation ---
+    /**
+     * @dev See {IERC721Receiver-onERC721Received}.
+     *
+     * Always accept ERC721 tokens.
+     */
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external override returns (bytes4) {
+        // You can add logic here to check if the transfer is expected,
+        // e.g., if it matches an active loan acceptance process.
+        // For now, we accept all transfers to this contract.
+        // Ensure msg.sender is a trusted NFT contract if needed, though safeTransferFrom handles this.
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
+    // --- IERC165 Support ---
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
+        return
+            interfaceId == type(ILendingProtocol).interfaceId ||
+            interfaceId == type(IERC721Receiver).interfaceId;
     }
 }
 
