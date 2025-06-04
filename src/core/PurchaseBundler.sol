@@ -26,16 +26,17 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         require(msg.sender == address(lendingProtocol), "Caller not LendingProtocol");
         _;
     }
-     modifier onlySeller(bytes32 listingId) {
+
+    modifier onlySeller(bytes32 listingId) {
         require(saleListings[listingId].seller == msg.sender, "Not seller");
         _;
     }
 
-
     constructor(address _lendingProtocolAddress) Ownable(msg.sender) {
         // Removed: require(_lendingProtocolAddress != address(0), "Lending protocol zero address");
         // lendingProtocol will be set by setLendingProtocol()
-        if (_lendingProtocolAddress != address(0)) { // Allow initialization if provided, but don't require
+        if (_lendingProtocolAddress != address(0)) {
+            // Allow initialization if provided, but don't require
             lendingProtocol = ILendingProtocol(_lendingProtocolAddress);
         }
     }
@@ -54,15 +55,15 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         require(price > 0, "Price must be > 0");
 
-        uint256 maxDebt = getMaximumDebt(loanId); 
+        uint256 maxDebt = getMaximumDebt(loanId);
         require(price >= maxDebt, "Price too low to cover potential debt");
 
-        listingId = loanId; 
+        listingId = loanId;
         require(!saleListings[listingId].isActive, "Listing already active for this loan");
 
         saleListings[listingId] = SaleListing({
             loanId: loanId,
-            seller: msg.sender, 
+            seller: msg.sender,
             nftContract: nftContract,
             nftTokenId: nftTokenId,
             isVault: isVault,
@@ -80,10 +81,10 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         SaleListing storage listing = saleListings[listingId];
         require(listing.isActive, "Listing not active");
         require(paymentAmount >= listing.price, "Payment amount too low");
-        
-        if (listing.currency == address(0)) { 
+
+        if (listing.currency == address(0)) {
             require(msg.value == paymentAmount, "Incorrect ETH amount");
-        } else { 
+        } else {
             require(msg.value == 0, "ETH sent for ERC20 sale");
             IERC20(listing.currency).safeTransferFrom(msg.sender, address(this), paymentAmount);
         }
@@ -92,14 +93,16 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         uint256 interest = lendingProtocol.calculateInterest(listing.loanId);
         uint256 totalDebt = loan.principalAmount + interest;
 
-        require(paymentAmount >= totalDebt, "Internal: Payment less than total debt despite initial check. Price changed?");
+        require(
+            paymentAmount >= totalDebt, "Internal: Payment less than total debt despite initial check. Price changed?"
+        );
 
         if (listing.currency == address(0)) {
             revert("Native ETH repayment to LendingProtocol not fully implemented here");
         } else {
             IERC20(listing.currency).safeTransfer(address(lendingProtocol), totalDebt);
         }
-        
+
         uint256 surplus = paymentAmount - totalDebt;
         if (surplus > 0) {
             if (listing.currency == address(0)) {
@@ -109,9 +112,11 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
             }
         }
 
-        listing.isActive = false; 
+        listing.isActive = false;
 
-        emit CollateralSoldAndRepaid(listing.loanId, msg.sender, listing.nftContract, listing.nftTokenId, paymentAmount, totalDebt, surplus);
+        emit CollateralSoldAndRepaid(
+            listing.loanId, msg.sender, listing.nftContract, listing.nftTokenId, paymentAmount, totalDebt, surplus
+        );
     }
 
     function cancelSaleListing(bytes32 listingId) external override onlySeller(listingId) nonReentrant {
@@ -119,7 +124,7 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         require(listing.isActive, "Listing not active");
 
         listing.isActive = false;
-        
+
         emit SaleListingCancelled(listingId, msg.sender);
     }
 
@@ -130,7 +135,7 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
     function getMaximumDebt(bytes32 loanId) public view override returns (uint256) {
         require(address(lendingProtocol) != address(0), "LP not set");
         ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
-        if(loan.borrower == address(0)) return type(uint256).max; 
+        if (loan.borrower == address(0)) return type(uint256).max;
 
         uint256 timeToEnd = loan.dueTime > uint64(block.timestamp) ? loan.dueTime - loan.startTime : 0;
         uint256 SECONDS_IN_YEAR = 365 days;

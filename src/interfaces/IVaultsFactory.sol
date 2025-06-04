@@ -9,25 +9,12 @@ pragma solidity 0.8.30;
  */
 interface IVaultsFactory {
     // --- Events ---
-    event VaultCreated(
-        uint256 indexed vaultId,
-        address indexed owner,
-        address[] nftContracts,
-        uint256[] tokenIds,
-        uint256[] amounts // For ERC1155
-    );
-    event VaultContentAdded(
-        uint256 indexed vaultId,
-        address[] nftContracts,
-        uint256[] tokenIds,
-        uint256[] amounts // For ERC1155
-    );
-    event VaultContentRemoved(
-        uint256 indexed vaultId,
-        address[] nftContracts,
-        uint256[] tokenIds,
-        uint256[] amounts // For ERC1155
-    );
+    event VaultCreated( // For ERC1155
+    uint256 indexed vaultId, address indexed owner, address[] nftContracts, uint256[] tokenIds, uint256[] amounts);
+    event VaultContentAdded( // For ERC1155
+    uint256 indexed vaultId, address[] nftContracts, uint256[] tokenIds, uint256[] amounts);
+    event VaultContentRemoved( // For ERC1155
+    uint256 indexed vaultId, address[] nftContracts, uint256[] tokenIds, uint256[] amounts);
     // Note: Burning a vault to add more NFTs seems counterintuitive.
     // Usually, you'd add to an existing vault or burn it to retrieve all contents.
     // The description says "burnVault ... to add more NFTs". This might mean
@@ -53,10 +40,7 @@ interface IVaultsFactory {
      * @param nftItems Array of NFTItem structs representing NFTs to be bundled.
      * @return vaultId The token ID of the newly minted vault ERC721.
      */
-    function mintVault(
-        address owner,
-        NFTItem[] calldata nftItems
-    ) external returns (uint256 vaultId);
+    function mintVault(address owner, NFTItem[] calldata nftItems) external returns (uint256 vaultId);
 
     /**
      * @notice Allows adding more NFTs to an existing vault.
@@ -64,10 +48,7 @@ interface IVaultsFactory {
      * @param vaultId The ID of the vault to add content to.
      * @param nftItems Array of NFTItem structs representing NFTs to be added.
      */
-    function addContentToVault(
-        uint256 vaultId,
-        NFTItem[] calldata nftItems
-    ) external;
+    function addContentToVault(uint256 vaultId, NFTItem[] calldata nftItems) external;
 
     /**
      * @notice Allows removing specific NFTs from an existing vault.
@@ -76,10 +57,7 @@ interface IVaultsFactory {
      * @param vaultId The ID of the vault to remove content from.
      * @param nftItems Array of NFTItem structs representing NFTs to be removed.
      */
-    function removeContentFromVault(
-        uint256 vaultId,
-        NFTItem[] calldata nftItems
-    ) external;
+    function removeContentFromVault(uint256 vaultId, NFTItem[] calldata nftItems) external;
 
     /**
      * @notice Allows the owner to burn (destroy) a vault and retrieve all its contents.
@@ -87,7 +65,6 @@ interface IVaultsFactory {
      * @param vaultId The ID of the vault to burn.
      */
     function burnVault(uint256 vaultId) external;
-
 
     /**
      * @notice Retrieves the NFTs contained within a specific vault.

@@ -12,12 +12,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev Implements ICurrencyManager. This is a placeholder implementation.
  */
 contract CurrencyManager is ICurrencyManager, Ownable {
-
     mapping(address => bool) private supportedCurrencies;
     address[] private currencyList;
 
     constructor(address[] memory initialCurrencies) Ownable(msg.sender) {
-        for (uint i = 0; i < initialCurrencies.length; i++) {
+        for (uint256 i = 0; i < initialCurrencies.length; i++) {
             _addSupportedCurrency(initialCurrencies[i]);
         }
     }
@@ -59,7 +58,7 @@ contract CurrencyManager is ICurrencyManager, Ownable {
         supportedCurrencies[tokenAddress] = false;
 
         // Remove from list (can be gas intensive for large lists)
-        for (uint i = 0; i < currencyList.length; i++) {
+        for (uint256 i = 0; i < currencyList.length; i++) {
             if (currencyList[i] == tokenAddress) {
                 currencyList[i] = currencyList[currencyList.length - 1];
                 currencyList.pop();

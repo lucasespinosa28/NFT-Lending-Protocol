@@ -16,11 +16,7 @@ contract ERC20Mock is ERC20, ERC20Burnable {
     /**
      * @dev Constructor that gives msg.sender all of existing tokens.
      */
-    constructor(
-        string memory name,
-        string memory symbol
-    ) ERC20(name, symbol) {
-    }
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
     /**
      * @dev Creates `amount` new tokens for `to`.
      *
@@ -30,6 +26,7 @@ contract ERC20Mock is ERC20, ERC20Burnable {
      *
      * - the caller must have the `MINTER_ROLE`.
      */
+
     function mint(address to, uint256 amount) public virtual {
         _mint(to, amount);
     }
@@ -57,4 +54,3 @@ contract ERC20Mock is ERC20, ERC20Burnable {
         return address(this).balance;
     }
 }
-

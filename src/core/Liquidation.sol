@@ -4,7 +4,7 @@ pragma solidity 0.8.30; // Assuming you want all files at 0.8.26
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ILiquidation} from "../interfaces/ILiquidation.sol";
-import {ILendingProtocol} from "../interfaces/ILendingProtocol.sol"; 
+import {ILendingProtocol} from "../interfaces/ILendingProtocol.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -21,7 +21,7 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
     ILendingProtocol public lendingProtocol; // Address of the main lending protocol
 
     mapping(bytes32 => Auction) public auctions; // auctionId => Auction details
-    mapping(bytes32 => Buyout) public buyouts;   // loanId => Buyout details
+    mapping(bytes32 => Buyout) public buyouts; // loanId => Buyout details
 
     uint256 private auctionCounter;
 
@@ -43,18 +43,18 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
     constructor(address _lendingProtocolAddress) Ownable(msg.sender) {
         // Removed: require(_lendingProtocolAddress != address(0), "Lending protocol zero address");
         // lendingProtocol will be set by setLendingProtocol()
-        if (_lendingProtocolAddress != address(0)) { // Allow initialization if provided, but don't require
+        if (_lendingProtocolAddress != address(0)) {
+            // Allow initialization if provided, but don't require
             lendingProtocol = ILendingProtocol(_lendingProtocolAddress);
         }
     }
 
     // --- Buyout Logic ---
-    function initiateBuyout(
-        bytes32 loanId,
-        address largestLender,
-        uint256 buyoutPrice,
-        uint64 buyoutDeadline
-    ) external override onlyLendingProtocol { 
+    function initiateBuyout(bytes32 loanId, address largestLender, uint256 buyoutPrice, uint64 buyoutDeadline)
+        external
+        override
+        onlyLendingProtocol
+    {
         require(address(lendingProtocol) != address(0), "LP not set");
         require(!buyouts[loanId].isActive, "Buyout already active");
         buyouts[loanId] = Buyout({
@@ -76,7 +76,6 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         require(msg.sender == currentBuyout.largestLender, "Not largest lender");
         require(block.timestamp <= currentBuyout.buyoutDeadline, "Buyout deadline passed");
 
-
         currentBuyout.completed = true;
         currentBuyout.isActive = false;
 
@@ -87,7 +86,6 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         return buyouts[loanId].isActive && block.timestamp <= buyouts[loanId].buyoutDeadline;
     }
 
-
     // --- Auction Logic ---
     function startAuction(
         bytes32 loanId,
@@ -97,15 +95,15 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         address currency,
         uint256 startingBid,
         uint64 auctionDuration,
-        address[] calldata lenders, 
-        uint256[] calldata lenderShares 
-    ) external override onlyLendingProtocol returns (bytes32 auctionId) { 
+        address[] calldata lenders,
+        uint256[] calldata lenderShares
+    ) external override onlyLendingProtocol returns (bytes32 auctionId) {
         require(address(lendingProtocol) != address(0), "LP not set");
         auctionCounter++;
         auctionId = keccak256(abi.encodePacked("auction", auctionCounter, loanId));
 
         require(auctionDuration > 0, "Duration must be > 0");
-        require(startingBid > 0, "Starting bid must be > 0"); 
+        require(startingBid > 0, "Starting bid must be > 0");
 
         auctions[auctionId] = Auction({
             loanId: loanId,
@@ -114,7 +112,7 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
             isVault: isVault,
             currency: currency,
             startingBid: startingBid,
-            highestBid: 0, 
+            highestBid: 0,
             highestBidder: address(0),
             startTime: uint64(block.timestamp),
             endTime: uint64(block.timestamp) + auctionDuration,
@@ -131,11 +129,11 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         Auction storage currentAuction = auctions[auctionId];
         require(currentAuction.status == AuctionStatus.ACTIVE, "Auction not active");
         require(block.timestamp < currentAuction.endTime, "Auction ended");
-        require(amount > currentAuction.highestBid, "Bid too low"); 
-        
-        if (currentAuction.currency == address(0)) { 
+        require(amount > currentAuction.highestBid, "Bid too low");
+
+        if (currentAuction.currency == address(0)) {
             require(msg.value == amount, "Incorrect ETH amount");
-        } else { 
+        } else {
             require(msg.value == 0, "ETH sent for ERC20 auction");
             IERC20(currentAuction.currency).safeTransferFrom(msg.sender, address(this), amount);
         }
@@ -174,14 +172,14 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         require(address(lendingProtocol) != address(0), "LP not set"); // Ensure LP is set for safety
 
         uint256 totalProceeds = currentAuction.highestBid;
-        
+
         uint256 totalShares = 0;
-        for(uint i=0; i < currentAuction.lenderShares.length; i++){
+        for (uint256 i = 0; i < currentAuction.lenderShares.length; i++) {
             totalShares += currentAuction.lenderShares[i];
         }
 
-        if (totalShares > 0) { 
-            for (uint i = 0; i < currentAuction.lenders.length; i++) {
+        if (totalShares > 0) {
+            for (uint256 i = 0; i < currentAuction.lenders.length; i++) {
                 if (currentAuction.lenders[i] != address(0)) {
                     uint256 paymentAmount = (totalProceeds * currentAuction.lenderShares[i]) / totalShares;
                     if (paymentAmount > 0) {
@@ -195,7 +193,6 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
             }
         }
 
-
         currentAuction.status = AuctionStatus.SETTLED;
         emit ProceedsDistributed(auctionId, totalProceeds);
     }
@@ -205,11 +202,9 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         require(currentAuction.status == AuctionStatus.ENDED_NO_BIDS, "Auction did not end with no bids");
         require(address(lendingProtocol) != address(0), "LP not set");
 
-
         emit CollateralClaimedPostAuction(auctionId, msg.sender);
-        currentAuction.status = AuctionStatus.SETTLED; 
+        currentAuction.status = AuctionStatus.SETTLED;
     }
-
 
     function getAuction(bytes32 auctionId) external view override returns (Auction memory) {
         return auctions[auctionId];
@@ -221,4 +216,3 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         lendingProtocol = ILendingProtocol(_lendingProtocolAddress);
     }
 }
-

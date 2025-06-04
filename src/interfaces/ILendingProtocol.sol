@@ -16,34 +16,36 @@ interface ILendingProtocol {
 
     enum LoanStatus {
         PENDING_ACCEPTANCE, // Offer made, not yet accepted
-        ACTIVE,             // Loan is active
-        REPAID,             // Loan has been repaid
-        DEFAULTED,          // Loan defaulted, collateral claimable/auctioned
-        AUCTION_PENDING,    // Loan defaulted, auction pending (for multi-tranche)
-        AUCTION_ACTIVE,     // Loan defaulted, auction active
-        AUCTION_SETTLED     // Loan defaulted, auction settled
+        ACTIVE, // Loan is active
+        REPAID, // Loan has been repaid
+        DEFAULTED, // Loan defaulted, collateral claimable/auctioned
+        AUCTION_PENDING, // Loan defaulted, auction pending (for multi-tranche)
+        AUCTION_ACTIVE, // Loan defaulted, auction active
+        AUCTION_SETTLED // Loan defaulted, auction settled
+
     }
 
     enum OfferType {
         STANDARD, // Offer for a specific NFT
-        COLLECTION  // Offer for any NFT in a collection
+        COLLECTION // Offer for any NFT in a collection
+
     }
 
     // Struct to group parameters for makeLoanOffer to avoid stack too deep errors
     struct OfferParams {
         OfferType offerType;
         address nftContract; // For standard offers, the specific NFT contract or collection for collection offers
-        uint256 nftTokenId;  // For standard offers, the specific NFT token ID; 0 for collection offers
-        address currency;    // WETH, USDC, etc.
+        uint256 nftTokenId; // For standard offers, the specific NFT token ID; 0 for collection offers
+        address currency; // WETH, USDC, etc.
         uint256 principalAmount;
         uint256 interestRateAPR; // Annual Percentage Rate (e.g., 500 for 5.00%)
         uint256 durationSeconds;
         uint64 expirationTimestamp; // When the offer expires if not accepted
         uint256 originationFeeRate; // Percentage of principal (e.g., 100 for 1.00%)
         // Collection offer specific params
-        uint256 totalCapacity;      // For collection offers: max capital lender wants to deploy
+        uint256 totalCapacity; // For collection offers: max capital lender wants to deploy
         uint256 maxPrincipalPerLoan; // For collection offers: max principal for an individual loan
-        uint256 minNumberOfLoans;   // For collection offers: to distribute total capacity
+        uint256 minNumberOfLoans; // For collection offers: to distribute total capacity
     }
 
     struct LoanOffer {
@@ -141,24 +143,13 @@ interface ILendingProtocol {
     );
 
     event CollateralClaimed(
-        bytes32 indexed loanId,
-        address indexed lender,
-        address indexed nftContract,
-        uint256 nftTokenId
+        bytes32 indexed loanId, address indexed lender, address indexed nftContract, uint256 nftTokenId
     );
 
-    event CollateralListedForSale(
-        bytes32 indexed loanId,
-        address indexed seller, // borrower
-        address indexed nftContract,
-        uint256 nftTokenId,
-        uint256 price
-    );
+    event CollateralListedForSale( // borrower
+    bytes32 indexed loanId, address indexed seller, address indexed nftContract, uint256 nftTokenId, uint256 price);
 
-    event CollateralSaleCancelled(
-        bytes32 indexed loanId,
-        address indexed seller
-    );
+    event CollateralSaleCancelled(bytes32 indexed loanId, address indexed seller);
 
     event CollateralSoldAndRepaid(
         bytes32 indexed loanId,
@@ -169,7 +160,6 @@ interface ILendingProtocol {
         uint256 amountToRepayLoan
     );
 
-
     // --- Functions ---
 
     /**
@@ -178,9 +168,7 @@ interface ILendingProtocol {
      * @param params Struct containing all parameters for the offer.
      * @return offerId The ID of the newly created offer.
      */
-    function makeLoanOffer(
-        OfferParams calldata params
-    ) external returns (bytes32 offerId);
+    function makeLoanOffer(OfferParams calldata params) external returns (bytes32 offerId);
 
     /**
      * @notice Allows a borrower to accept a loan offer and initiate a loan.
@@ -190,11 +178,9 @@ interface ILendingProtocol {
      * @param nftTokenId The specific NFT token ID (if collection offer, borrower specifies).
      * @return loanId The ID of the newly created loan.
      */
-    function acceptLoanOffer(
-        bytes32 offerId,
-        address nftContract, 
-        uint256 nftTokenId   
-    ) external returns (bytes32 loanId);
+    function acceptLoanOffer(bytes32 offerId, address nftContract, uint256 nftTokenId)
+        external
+        returns (bytes32 loanId);
 
     /**
      * @notice Allows a lender to cancel an active loan offer.
@@ -259,12 +245,10 @@ interface ILendingProtocol {
      */
     function claimCollateral(bytes32 loanId) external;
 
-
     // --- Getters ---
     function getLoan(bytes32 loanId) external view returns (Loan memory);
     function getLoanOffer(bytes32 offerId) external view returns (LoanOffer memory);
     function calculateInterest(bytes32 loanId) external view returns (uint256 interestDue);
     function isLoanRepayable(bytes32 loanId) external view returns (bool);
     function isLoanInDefault(bytes32 loanId) external view returns (bool);
-
 }

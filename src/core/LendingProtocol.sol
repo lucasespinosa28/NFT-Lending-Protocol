@@ -13,7 +13,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ILendingProtocol} from "../interfaces/ILendingProtocol.sol";
 import {ICurrencyManager} from "../interfaces/ICurrencyManager.sol";
 import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
-import {IVaultsFactory} from "../interfaces/IVaultsFactory.sol"; 
+import {IVaultsFactory} from "../interfaces/IVaultsFactory.sol";
 import {ILiquidation} from "../interfaces/ILiquidation.sol";
 import {IPurchaseBundler} from "../interfaces/IPurchaseBundler.sol";
 
@@ -23,20 +23,25 @@ import {IPurchaseBundler} from "../interfaces/IPurchaseBundler.sol";
  * @notice Core contract for managing NFT-backed loans.
  * @dev Implements ILendingProtocol. This is a placeholder implementation.
  */
-contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721Receiver { // Added IERC721Receiver
+contract LendingProtocol is
+    ILendingProtocol,
+    Ownable,
+    ReentrancyGuard,
+    IERC721Receiver // Added IERC721Receiver
+{
     using SafeERC20 for IERC20;
 
     // --- State Variables ---
 
     ICurrencyManager public currencyManager;
     ICollectionManager public collectionManager;
-    IVaultsFactory public vaultsFactory; 
+    IVaultsFactory public vaultsFactory;
     ILiquidation public liquidationContract;
     IPurchaseBundler public purchaseBundler;
 
     mapping(bytes32 => LoanOffer) public loanOffers;
     mapping(bytes32 => Loan) public loans;
-    mapping(bytes32 => RenegotiationProposal) public renegotiationProposals; 
+    mapping(bytes32 => RenegotiationProposal) public renegotiationProposals;
 
     uint256 private offerCounter;
     uint256 private loanCounter;
@@ -45,7 +50,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
     struct RenegotiationProposal {
         bytes32 proposalId;
         bytes32 loanId;
-        address proposer; 
+        address proposer;
         address borrower;
         uint256 proposedPrincipalAmount;
         uint256 proposedInterestRateAPR;
@@ -69,7 +74,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
     constructor(
         address _currencyManager,
         address _collectionManager,
-        address _vaultsFactory, 
+        address _vaultsFactory,
         address _liquidationContract,
         address _purchaseBundler
     ) Ownable(msg.sender) {
@@ -89,9 +94,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
 
     // --- ILendingProtocol Implementation ---
 
-    function makeLoanOffer(
-        OfferParams calldata params
-    ) external override nonReentrant returns (bytes32 offerId) {
+    function makeLoanOffer(OfferParams calldata params) external override nonReentrant returns (bytes32 offerId) {
         require(currencyManager.isCurrencySupported(params.currency), "Currency not supported");
         require(params.principalAmount > 0, "Principal must be > 0");
         require(params.durationSeconds > 0, "Duration must be > 0");
@@ -100,10 +103,14 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         if (params.offerType == OfferType.STANDARD) {
             require(params.nftContract != address(0), "NFT contract address needed");
             require(collectionManager.isCollectionWhitelisted(params.nftContract), "Collection not whitelisted");
-        } else { // Collection Offer
+        } else {
+            // Collection Offer
             require(collectionManager.isCollectionWhitelisted(params.nftContract), "Collection not whitelisted");
             require(params.totalCapacity > 0, "Total capacity must be > 0");
-            require(params.maxPrincipalPerLoan > 0 && params.maxPrincipalPerLoan <= params.totalCapacity, "Invalid max principal per loan");
+            require(
+                params.maxPrincipalPerLoan > 0 && params.maxPrincipalPerLoan <= params.totalCapacity,
+                "Invalid max principal per loan"
+            );
         }
 
         offerCounter++;
@@ -121,7 +128,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
             durationSeconds: params.durationSeconds,
             expirationTimestamp: params.expirationTimestamp,
             originationFeeRate: params.originationFeeRate,
-            maxSeniorRepayment: 0, 
+            maxSeniorRepayment: 0,
             totalCapacity: params.totalCapacity,
             maxPrincipalPerLoan: params.maxPrincipalPerLoan,
             minNumberOfLoans: params.minNumberOfLoans,
@@ -143,11 +150,12 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         return offerId;
     }
 
-    function acceptLoanOffer(
-        bytes32 offerId,
-        address nftContract, 
-        uint256 nftTokenId   
-    ) external override nonReentrant returns (bytes32 loanId) {
+    function acceptLoanOffer(bytes32 offerId, address nftContract, uint256 nftTokenId)
+        external
+        override
+        nonReentrant
+        returns (bytes32 loanId)
+    {
         LoanOffer storage offer = loanOffers[offerId];
         require(offer.isActive, "Offer not active");
         require(offer.expirationTimestamp > block.timestamp, "Offer expired");
@@ -160,7 +168,8 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         if (offer.offerType == OfferType.STANDARD) {
             collateralContract = offer.nftContract;
             collateralTokenId = offer.nftTokenId;
-        } else { // Collection Offer
+        } else {
+            // Collection Offer
             collateralContract = nftContract;
             collateralTokenId = nftTokenId;
             require(collectionManager.isCollectionWhitelisted(collateralContract), "Collection not whitelisted");
@@ -172,7 +181,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
             // Ensure collateralContract is the address of the vault token contract (which is vaultsFactory itself if it's the ERC721)
             // If vaults are separate ERC721s, this needs to be the vault's contract address.
             // Assuming VaultsFactory IS the ERC721 contract for vaults:
-            collateralContract = address(vaultsFactory); 
+            collateralContract = address(vaultsFactory);
         } else {
             require(IERC721(collateralContract).ownerOf(collateralTokenId) == msg.sender, "Not NFT owner");
         }
@@ -181,12 +190,11 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         // collateralContract should be the address of the ERC721 token being transferred
         IERC721(collateralContract).safeTransferFrom(msg.sender, address(this), collateralTokenId);
 
-
         loanCounter++;
         loanId = keccak256(abi.encodePacked("loan", loanCounter, msg.sender, offerId));
         uint64 startTime = uint64(block.timestamp);
         uint64 dueTime = startTime + uint64(offer.durationSeconds);
-        uint256 originationFee = (offer.principalAmount * offer.originationFeeRate) / 10000; 
+        uint256 originationFee = (offer.principalAmount * offer.originationFeeRate) / 10000;
 
         loans[loanId] = Loan({
             loanId: loanId,
@@ -202,17 +210,16 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
             originationFeePaid: originationFee,
             startTime: startTime,
             dueTime: dueTime,
-            accruedInterest: 0, 
+            accruedInterest: 0,
             status: LoanStatus.ACTIVE
         });
 
-        offer.isActive = false; 
+        offer.isActive = false;
 
         IERC20(offer.currency).safeTransferFrom(offer.lender, msg.sender, offer.principalAmount - originationFee);
         if (originationFee > 0) {
-            IERC20(offer.currency).safeTransferFrom(offer.lender, offer.lender, originationFee); 
+            IERC20(offer.currency).safeTransferFrom(offer.lender, offer.lender, originationFee);
         }
-
 
         emit OfferAccepted(
             loanId,
@@ -234,10 +241,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         require(offer.isActive, "Offer not active");
 
         offer.isActive = false;
-        
+
         emit OfferCancelled(offerId, msg.sender);
     }
-
 
     function repayLoan(bytes32 loanId) external override nonReentrant {
         Loan storage currentLoan = loans[loanId];
@@ -252,7 +258,6 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
 
         // currentLoan.nftContract holds the address of the ERC721 token (either original NFT or VaultsFactory)
         IERC721(currentLoan.nftContract).safeTransferFrom(address(this), currentLoan.borrower, currentLoan.nftTokenId);
-
 
         currentLoan.status = LoanStatus.REPAID;
         currentLoan.accruedInterest = interest;
@@ -287,16 +292,24 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         oldLoan.interestRateAPR = newInterestRateAPR;
         oldLoan.startTime = uint64(block.timestamp);
         oldLoan.dueTime = uint64(block.timestamp) + uint64(newDurationSeconds);
-        oldLoan.originationFeePaid = (newPrincipalAmount * newOriginationFeeRate) / 10000; 
-        oldLoan.accruedInterest = 0; 
+        oldLoan.originationFeePaid = (newPrincipalAmount * newOriginationFeeRate) / 10000;
+        oldLoan.accruedInterest = 0;
 
         if (oldLoan.originationFeePaid > 0) {
-             IERC20(oldLoan.currency).safeTransferFrom(msg.sender, msg.sender, oldLoan.originationFeePaid);
+            IERC20(oldLoan.currency).safeTransferFrom(msg.sender, msg.sender, oldLoan.originationFeePaid);
         }
 
-
-        emit LoanRefinanced(existingLoanId, existingLoanId, oldLoan.borrower, oldLoan.lender , msg.sender, newPrincipalAmount, newInterestRateAPR, oldLoan.dueTime);
-        return existingLoanId; 
+        emit LoanRefinanced(
+            existingLoanId,
+            existingLoanId,
+            oldLoan.borrower,
+            oldLoan.lender,
+            msg.sender,
+            newPrincipalAmount,
+            newInterestRateAPR,
+            oldLoan.dueTime
+        );
+        return existingLoanId;
     }
 
     function proposeRenegotiation(
@@ -345,7 +358,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         currentLoan.principalAmount = proposal.proposedPrincipalAmount;
         currentLoan.interestRateAPR = proposal.proposedInterestRateAPR;
         currentLoan.dueTime = currentLoan.startTime + uint64(proposal.proposedDurationSeconds);
-        currentLoan.accruedInterest = 0; 
+        currentLoan.accruedInterest = 0;
 
         proposal.accepted = true;
 
@@ -359,14 +372,16 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         );
     }
 
-
     function claimCollateral(bytes32 loanId) external override nonReentrant {
         Loan storage currentLoan = loans[loanId];
-        require(currentLoan.lender == msg.sender, "Not lender"); 
-        require(currentLoan.status == LoanStatus.ACTIVE || currentLoan.status == LoanStatus.DEFAULTED, "Loan not active/defaulted");
+        require(currentLoan.lender == msg.sender, "Not lender");
+        require(
+            currentLoan.status == LoanStatus.ACTIVE || currentLoan.status == LoanStatus.DEFAULTED,
+            "Loan not active/defaulted"
+        );
         require(block.timestamp > currentLoan.dueTime, "Loan not yet defaulted");
 
-        currentLoan.status = LoanStatus.DEFAULTED; 
+        currentLoan.status = LoanStatus.DEFAULTED;
 
         IERC721(currentLoan.nftContract).safeTransferFrom(address(this), msg.sender, currentLoan.nftTokenId);
 
@@ -385,15 +400,16 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
     function calculateInterest(bytes32 loanId) public view override returns (uint256 interestDue) {
         Loan storage currentLoan = loans[loanId];
         if (currentLoan.status != LoanStatus.ACTIVE && currentLoan.status != LoanStatus.DEFAULTED) {
-            return currentLoan.accruedInterest; 
+            return currentLoan.accruedInterest;
         }
 
-        uint256 timeElapsed = block.timestamp > currentLoan.dueTime ?
-                               currentLoan.dueTime - currentLoan.startTime :
-                               block.timestamp - currentLoan.startTime;
+        uint256 timeElapsed = block.timestamp > currentLoan.dueTime
+            ? currentLoan.dueTime - currentLoan.startTime
+            : block.timestamp - currentLoan.startTime;
 
         uint256 SECONDS_IN_YEAR = 365 days;
-        interestDue = (currentLoan.principalAmount * currentLoan.interestRateAPR * timeElapsed) / (10000 * SECONDS_IN_YEAR);
+        interestDue =
+            (currentLoan.principalAmount * currentLoan.interestRateAPR * timeElapsed) / (10000 * SECONDS_IN_YEAR);
         return interestDue;
     }
 
@@ -407,7 +423,6 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         if (currentLoan.status == LoanStatus.DEFAULTED) return true;
         return currentLoan.status == LoanStatus.ACTIVE && block.timestamp > currentLoan.dueTime;
     }
-
 
     // --- Admin Functions ---
     function setCurrencyManager(address _currencyManager) external onlyOwner {
@@ -440,12 +455,11 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
      *
      * Always accept ERC721 tokens.
      */
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override returns (bytes4) {
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
+        external
+        override
+        returns (bytes4)
+    {
         // You can add logic here to check if the transfer is expected,
         // e.g., if it matches an active loan acceptance process.
         // For now, we accept all transfers to this contract.
@@ -455,9 +469,6 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
 
     // --- IERC165 Support ---
     function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
-        return
-            interfaceId == type(ILendingProtocol).interfaceId ||
-            interfaceId == type(IERC721Receiver).interfaceId;
+        return interfaceId == type(ILendingProtocol).interfaceId || interfaceId == type(IERC721Receiver).interfaceId;
     }
 }
-

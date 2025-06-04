@@ -16,10 +16,7 @@ import {ERC721Burnable} from "@openzeppelin/contracts/token/ERC721/extensions/ER
 contract ERC721Mock is ERC721, ERC721Enumerable, ERC721Burnable {
     uint256 private _nextTokenId;
 
-    constructor(
-        string memory name,
-        string memory symbol
-    ) ERC721(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
 
     /**
      * @dev Mints a new token for `to`.
@@ -94,4 +91,3 @@ contract ERC721Mock is ERC721, ERC721Enumerable, ERC721Burnable {
         return super._update(to, tokenId, auth);
     }
 }
-

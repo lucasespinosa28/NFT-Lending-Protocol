@@ -17,13 +17,7 @@ import {IVaultsFactory} from "../interfaces/IVaultsFactory.sol";
  * @dev Each vault is an ERC721 token minted by this factory.
  * This contract will also act as the ERC721 contract for the vaults themselves.
  */
-contract VaultsFactory is
-    IVaultsFactory,
-    ERC721,
-    Ownable,
-    IERC721Receiver,
-    IERC1155Receiver
-{
+contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC1155Receiver {
     struct VaultContent {
         IVaultsFactory.NFTItem[] items; // Qualified NFTItem
         bool exists; // To check if a vaultId actually has content stored
@@ -35,10 +29,7 @@ contract VaultsFactory is
     // Address of this contract, used for checking if NFT is a vault managed by this factory
     address public immutable selfAddress;
 
-    constructor(
-        string memory name,
-        string memory symbol
-    ) ERC721(name, symbol) Ownable(msg.sender) {
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) Ownable(msg.sender) {
         selfAddress = address(this);
     }
 
@@ -65,13 +56,10 @@ contract VaultsFactory is
         VaultContent storage newVaultContent = vaultContents[vaultId];
         newVaultContent.exists = true; // Mark that this vaultId has associated content data
 
-        for (uint i = 0; i < nftItems.length; i++) {
+        for (uint256 i = 0; i < nftItems.length; i++) {
             // nftItems[i] is already IVaultsFactory.NFTItem calldata
             IVaultsFactory.NFTItem calldata item = nftItems[i];
-            require(
-                item.contractAddress != address(0),
-                "NFT contract is zero address"
-            );
+            require(item.contractAddress != address(0), "NFT contract is zero address");
 
             if (item.isERC1155) {
                 ExternalIERC1155(item.contractAddress).safeTransferFrom(
@@ -83,39 +71,17 @@ contract VaultsFactory is
                 );
                 // Pushing a qualified IVaultsFactory.NFTItem
                 newVaultContent.items.push(
-                    IVaultsFactory.NFTItem(
-                        item.contractAddress,
-                        item.tokenId,
-                        item.amount,
-                        true
-                    )
+                    IVaultsFactory.NFTItem(item.contractAddress, item.tokenId, item.amount, true)
                 );
             } else {
                 // ERC721
-                ExternalIERC721(item.contractAddress).safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    item.tokenId
-                );
+                ExternalIERC721(item.contractAddress).safeTransferFrom(msg.sender, address(this), item.tokenId);
                 // Pushing a qualified IVaultsFactory.NFTItem
-                newVaultContent.items.push(
-                    IVaultsFactory.NFTItem(
-                        item.contractAddress,
-                        item.tokenId,
-                        1,
-                        false
-                    )
-                );
+                newVaultContent.items.push(IVaultsFactory.NFTItem(item.contractAddress, item.tokenId, 1, false));
             }
         }
 
-        emit VaultCreated(
-            vaultId,
-            owner,
-            _getNftContracts(nftItems),
-            _getTokenIds(nftItems),
-            _getAmounts(nftItems)
-        );
+        emit VaultCreated(vaultId, owner, _getNftContracts(nftItems), _getTokenIds(nftItems), _getAmounts(nftItems));
         return vaultId;
     }
 
@@ -130,52 +96,24 @@ contract VaultsFactory is
         VaultContent storage currentVaultContent = vaultContents[vaultId];
         require(currentVaultContent.exists, "Vault content data missing");
 
-        for (uint i = 0; i < nftItems.length; i++) {
+        for (uint256 i = 0; i < nftItems.length; i++) {
             IVaultsFactory.NFTItem calldata item = nftItems[i];
-            require(
-                item.contractAddress != address(0),
-                "NFT contract is zero address"
-            );
+            require(item.contractAddress != address(0), "NFT contract is zero address");
 
             if (item.isERC1155) {
                 ExternalIERC1155(item.contractAddress).safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    item.tokenId,
-                    item.amount,
-                    abi.encodePacked(vaultId)
+                    msg.sender, address(this), item.tokenId, item.amount, abi.encodePacked(vaultId)
                 );
                 currentVaultContent.items.push(
-                    IVaultsFactory.NFTItem(
-                        item.contractAddress,
-                        item.tokenId,
-                        item.amount,
-                        true
-                    )
+                    IVaultsFactory.NFTItem(item.contractAddress, item.tokenId, item.amount, true)
                 );
             } else {
                 // ERC721
-                ExternalIERC721(item.contractAddress).safeTransferFrom(
-                    msg.sender,
-                    address(this),
-                    item.tokenId
-                );
-                currentVaultContent.items.push(
-                    IVaultsFactory.NFTItem(
-                        item.contractAddress,
-                        item.tokenId,
-                        1,
-                        false
-                    )
-                );
+                ExternalIERC721(item.contractAddress).safeTransferFrom(msg.sender, address(this), item.tokenId);
+                currentVaultContent.items.push(IVaultsFactory.NFTItem(item.contractAddress, item.tokenId, 1, false));
             }
         }
-        emit VaultContentAdded(
-            vaultId,
-            _getNftContracts(nftItems),
-            _getTokenIds(nftItems),
-            _getAmounts(nftItems)
-        );
+        emit VaultContentAdded(vaultId, _getNftContracts(nftItems), _getTokenIds(nftItems), _getAmounts(nftItems));
     }
 
     function removeContentFromVault(
@@ -188,67 +126,45 @@ contract VaultsFactory is
 
         VaultContent storage currentVaultContent = vaultContents[vaultId];
         require(currentVaultContent.exists, "Vault content data missing");
-        require(
-            currentVaultContent.items.length >= nftItemsToRemove.length,
-            "Removing too many items"
-        );
+        require(currentVaultContent.items.length >= nftItemsToRemove.length, "Removing too many items");
 
-        for (uint i = 0; i < nftItemsToRemove.length; i++) {
+        for (uint256 i = 0; i < nftItemsToRemove.length; i++) {
             IVaultsFactory.NFTItem calldata itemToRemove = nftItemsToRemove[i];
             bool foundAndRemoved = false;
-            for (uint j = 0; j < currentVaultContent.items.length; j++) {
+            for (uint256 j = 0; j < currentVaultContent.items.length; j++) {
                 // currentVaultContent.items[j] is IVaultsFactory.NFTItem storage
-                IVaultsFactory.NFTItem storage currentItem = currentVaultContent
-                    .items[j];
+                IVaultsFactory.NFTItem storage currentItem = currentVaultContent.items[j];
                 if (
-                    currentItem.contractAddress ==
-                    itemToRemove.contractAddress &&
-                    currentItem.tokenId == itemToRemove.tokenId &&
-                    currentItem.isERC1155 == itemToRemove.isERC1155 &&
-                    (!itemToRemove.isERC1155 ||
-                        currentItem.amount >= itemToRemove.amount)
+                    currentItem.contractAddress == itemToRemove.contractAddress
+                        && currentItem.tokenId == itemToRemove.tokenId && currentItem.isERC1155 == itemToRemove.isERC1155
+                        && (!itemToRemove.isERC1155 || currentItem.amount >= itemToRemove.amount)
                 ) {
                     if (itemToRemove.isERC1155) {
-                        ExternalIERC1155(itemToRemove.contractAddress)
-                            .safeTransferFrom(
-                                address(this),
-                                msg.sender,
-                                itemToRemove.tokenId,
-                                itemToRemove.amount,
-                                ""
-                            );
+                        ExternalIERC1155(itemToRemove.contractAddress).safeTransferFrom(
+                            address(this), msg.sender, itemToRemove.tokenId, itemToRemove.amount, ""
+                        );
                         currentItem.amount -= itemToRemove.amount;
                         if (currentItem.amount == 0) {
-                            currentVaultContent.items[j] = currentVaultContent
-                                .items[currentVaultContent.items.length - 1];
+                            currentVaultContent.items[j] =
+                                currentVaultContent.items[currentVaultContent.items.length - 1];
                             currentVaultContent.items.pop();
                         }
                     } else {
                         // ERC721
-                        ExternalIERC721(itemToRemove.contractAddress)
-                            .safeTransferFrom(
-                                address(this),
-                                msg.sender,
-                                itemToRemove.tokenId
-                            );
-                        currentVaultContent.items[j] = currentVaultContent
-                            .items[currentVaultContent.items.length - 1];
+                        ExternalIERC721(itemToRemove.contractAddress).safeTransferFrom(
+                            address(this), msg.sender, itemToRemove.tokenId
+                        );
+                        currentVaultContent.items[j] = currentVaultContent.items[currentVaultContent.items.length - 1];
                         currentVaultContent.items.pop();
                     }
                     foundAndRemoved = true;
                     break;
                 }
             }
-            require(
-                foundAndRemoved,
-                "Item to remove not found in vault or insufficient amount"
-            );
+            require(foundAndRemoved, "Item to remove not found in vault or insufficient amount");
         }
         emit VaultContentRemoved(
-            vaultId,
-            _getNftContracts(nftItemsToRemove),
-            _getTokenIds(nftItemsToRemove),
-            _getAmounts(nftItemsToRemove)
+            vaultId, _getNftContracts(nftItemsToRemove), _getTokenIds(nftItemsToRemove), _getAmounts(nftItemsToRemove)
         );
     }
 
@@ -257,31 +173,19 @@ contract VaultsFactory is
         require(ownerOf(vaultId) == msg.sender, "Not vault owner");
 
         VaultContent storage currentVaultContent = vaultContents[vaultId];
-        require(
-            currentVaultContent.exists,
-            "Vault content data missing for burn"
-        );
+        require(currentVaultContent.exists, "Vault content data missing for burn");
         // itemsToReturn will be an array of IVaultsFactory.NFTItem memory
-        IVaultsFactory.NFTItem[] memory itemsToReturn = currentVaultContent
-            .items;
+        IVaultsFactory.NFTItem[] memory itemsToReturn = currentVaultContent.items;
 
-        for (uint i = 0; i < itemsToReturn.length; i++) {
+        for (uint256 i = 0; i < itemsToReturn.length; i++) {
             IVaultsFactory.NFTItem memory item = itemsToReturn[i];
             if (item.isERC1155) {
                 ExternalIERC1155(item.contractAddress).safeTransferFrom(
-                    address(this),
-                    msg.sender,
-                    item.tokenId,
-                    item.amount,
-                    ""
+                    address(this), msg.sender, item.tokenId, item.amount, ""
                 );
             } else {
                 // ERC721
-                ExternalIERC721(item.contractAddress).safeTransferFrom(
-                    address(this),
-                    msg.sender,
-                    item.tokenId
-                );
+                ExternalIERC721(item.contractAddress).safeTransferFrom(address(this), msg.sender, item.tokenId);
             }
         }
 
@@ -289,15 +193,10 @@ contract VaultsFactory is
         _burn(vaultId); // Burn the ERC721 vault token
     }
 
-    function getVaultContent(
-        uint256 vaultId
-    ) external view override returns (IVaultsFactory.NFTItem[] memory) {
+    function getVaultContent(uint256 vaultId) external view override returns (IVaultsFactory.NFTItem[] memory) {
         // Return type from interface
         require(_isMinted(vaultId), "Vault token ID not minted");
-        require(
-            vaultContents[vaultId].exists,
-            "Vault content data does not exist or is empty"
-        );
+        require(vaultContents[vaultId].exists, "Vault content data does not exist or is empty");
         return vaultContents[vaultId].items;
     }
 
@@ -306,32 +205,27 @@ contract VaultsFactory is
         return _isMinted(vaultId);
     }
 
-    function ownerOfVault(
-        uint256 vaultId
-    ) external view override returns (address) {
+    function ownerOfVault(uint256 vaultId) external view override returns (address) {
         // Return type from interface
         require(_isMinted(vaultId), "Vault token ID not minted"); // Check if the token has an owner
         return ERC721.ownerOf(vaultId); // ownerOf itself will revert if token doesn't exist.
     }
 
     // --- IERC721Receiver ---
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override returns (bytes4) {
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
+        external
+        override
+        returns (bytes4)
+    {
         return IERC721Receiver.onERC721Received.selector;
     }
 
     // --- IERC1155Receiver ---
-    function onERC1155Received(
-        address operator,
-        address from,
-        uint256 id,
-        uint256 value,
-        bytes calldata data
-    ) external override returns (bytes4) {
+    function onERC1155Received(address operator, address from, uint256 id, uint256 value, bytes calldata data)
+        external
+        override
+        returns (bytes4)
+    {
         return IERC1155Receiver.onERC1155Received.selector;
     }
 
@@ -347,31 +241,25 @@ contract VaultsFactory is
 
     // --- Helpers to extract arrays for events ---
     // Parameters are IVaultsFactory.NFTItem[] calldata due to usage in overridden functions
-    function _getNftContracts(
-        IVaultsFactory.NFTItem[] calldata nftItems
-    ) private pure returns (address[] memory) {
+    function _getNftContracts(IVaultsFactory.NFTItem[] calldata nftItems) private pure returns (address[] memory) {
         address[] memory contracts = new address[](nftItems.length);
-        for (uint i = 0; i < nftItems.length; i++) {
+        for (uint256 i = 0; i < nftItems.length; i++) {
             contracts[i] = nftItems[i].contractAddress;
         }
         return contracts;
     }
 
-    function _getTokenIds(
-        IVaultsFactory.NFTItem[] calldata nftItems
-    ) private pure returns (uint256[] memory) {
+    function _getTokenIds(IVaultsFactory.NFTItem[] calldata nftItems) private pure returns (uint256[] memory) {
         uint256[] memory tokenIds = new uint256[](nftItems.length);
-        for (uint i = 0; i < nftItems.length; i++) {
+        for (uint256 i = 0; i < nftItems.length; i++) {
             tokenIds[i] = nftItems[i].tokenId;
         }
         return tokenIds;
     }
 
-    function _getAmounts(
-        IVaultsFactory.NFTItem[] calldata nftItems
-    ) private pure returns (uint256[] memory) {
+    function _getAmounts(IVaultsFactory.NFTItem[] calldata nftItems) private pure returns (uint256[] memory) {
         uint256[] memory amounts = new uint256[](nftItems.length);
-        for (uint i = 0; i < nftItems.length; i++) {
+        for (uint256 i = 0; i < nftItems.length; i++) {
             amounts[i] = nftItems[i].amount;
         }
         return amounts;
@@ -382,13 +270,8 @@ contract VaultsFactory is
         return "api/vault/"; // Placeholder
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC721, IERC165) returns (bool) {
-        return
-            interfaceId == type(IVaultsFactory).interfaceId ||
-            interfaceId == type(IERC721Receiver).interfaceId ||
-            interfaceId == type(IERC1155Receiver).interfaceId ||
-            super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, IERC165) returns (bool) {
+        return interfaceId == type(IVaultsFactory).interfaceId || interfaceId == type(IERC721Receiver).interfaceId
+            || interfaceId == type(IERC1155Receiver).interfaceId || super.supportsInterface(interfaceId);
     }
 }

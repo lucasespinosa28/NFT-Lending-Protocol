@@ -10,16 +10,9 @@ pragma solidity 0.8.30;
  */
 interface IRangeValidator {
     // --- Events ---
-    event RangeRuleSet(
-        address indexed collectionAddress,
-        uint256 minTokenId,
-        uint256 maxTokenId,
-        bool isAllowed
-    );
-    event CollectionValidatorSet(
-        address indexed collectionAddress,
-        address indexed validatorContract // A specific contract to validate this collection
-    );
+    event RangeRuleSet(address indexed collectionAddress, uint256 minTokenId, uint256 maxTokenId, bool isAllowed);
+    event CollectionValidatorSet( // A specific contract to validate this collection
+    address indexed collectionAddress, address indexed validatorContract);
 
     // --- Functions ---
 
@@ -29,10 +22,10 @@ interface IRangeValidator {
      * @param tokenId The token ID to validate.
      * @return True if the token ID is valid within the defined rules for the collection, false otherwise.
      */
-    function isTokenIdValidForCollectionOffer(
-        address collectionAddress,
-        uint256 tokenId
-    ) external view returns (bool);
+    function isTokenIdValidForCollectionOffer(address collectionAddress, uint256 tokenId)
+        external
+        view
+        returns (bool);
 
     /**
      * @notice Admin function to set or update validation rules for a collection.
@@ -43,12 +36,8 @@ interface IRangeValidator {
      * @param maxTokenId The maximum token ID of the allowed/disallowed range.
      * @param isAllowed True if tokens in this range are allowed, false if disallowed.
      */
-    function setTokenIdRangeRule(
-        address collectionAddress,
-        uint256 minTokenId,
-        uint256 maxTokenId,
-        bool isAllowed
-    ) external;
+    function setTokenIdRangeRule(address collectionAddress, uint256 minTokenId, uint256 maxTokenId, bool isAllowed)
+        external;
 
     /**
      * @notice Admin function to set a specific validator contract for a collection.
@@ -58,8 +47,5 @@ interface IRangeValidator {
      * @param validatorContract The address of the contract implementing validation logic for this collection.
      * Use address(0) to remove a specific validator.
      */
-    function setCollectionSpecificValidator(
-        address collectionAddress,
-        address validatorContract
-    ) external;
+    function setCollectionSpecificValidator(address collectionAddress, address validatorContract) external;
 }

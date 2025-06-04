@@ -11,13 +11,12 @@ import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
  * @dev Implements ICollectionManager. This is a placeholder implementation.
  */
 contract CollectionManager is ICollectionManager, Ownable {
-
     mapping(address => bool) private whitelistedCollections;
     address[] private collectionList;
     // mapping(address => uint256) public collectionMaxLTVs; // Example for LTV
 
     constructor(address[] memory initialCollections) Ownable(msg.sender) {
-        for (uint i = 0; i < initialCollections.length; i++) {
+        for (uint256 i = 0; i < initialCollections.length; i++) {
             _addWhitelistedCollection(initialCollections[i]);
         }
     }
@@ -27,7 +26,7 @@ contract CollectionManager is ICollectionManager, Ownable {
     }
 
     function addWhitelistedCollection(address collectionAddress) external override onlyOwner {
-       _addWhitelistedCollection(collectionAddress);
+        _addWhitelistedCollection(collectionAddress);
     }
 
     function _addWhitelistedCollection(address collectionAddress) private {
@@ -52,14 +51,13 @@ contract CollectionManager is ICollectionManager, Ownable {
         emit CollectionWhitelisted(collectionAddress);
     }
 
-
     function removeWhitelistedCollection(address collectionAddress) external override onlyOwner {
         require(collectionAddress != address(0), "Zero address");
         require(whitelistedCollections[collectionAddress], "Collection not whitelisted");
 
         whitelistedCollections[collectionAddress] = false;
 
-        for (uint i = 0; i < collectionList.length; i++) {
+        for (uint256 i = 0; i < collectionList.length; i++) {
             if (collectionList[i] == collectionAddress) {
                 collectionList[i] = collectionList[collectionList.length - 1];
                 collectionList.pop();

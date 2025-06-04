@@ -17,7 +17,6 @@ import {Stash} from "../src/core/Stash.sol";
 import {ERC20Mock} from "../src/mocks/ERC20Mock.sol";
 import {ERC721Mock} from "../src/mocks/ERC721Mock.sol";
 
-
 contract DeployProtocol is Script {
     CurrencyManager currencyManager;
     CollectionManager collectionManager;
@@ -32,14 +31,17 @@ contract DeployProtocol is Script {
     ERC20Mock usdc;
     ERC721Mock mockNftCollection1;
 
-    function run() external returns (
-        LendingProtocol,
-        CurrencyManager,
-        CollectionManager,
-        VaultsFactory, // Can be address(0) if not used
-        Liquidation,
-        PurchaseBundler
-    ) {
+    function run()
+        external
+        returns (
+            LendingProtocol,
+            CurrencyManager,
+            CollectionManager,
+            VaultsFactory, // Can be address(0) if not used
+            Liquidation,
+            PurchaseBundler
+        )
+    {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         // If no private key, use a default for local testing
         // address deployerAddress = vm.addr(deployerPrivateKey);
@@ -124,7 +126,6 @@ contract DeployProtocol is Script {
         purchaseBundler = new PurchaseBundler(address(0)); // Deploy with temp address(0) for LP
         console.log("Deployed PurchaseBundler at:", address(purchaseBundler));
 
-
         lendingProtocol = new LendingProtocol(
             address(currencyManager),
             address(collectionManager),
@@ -148,14 +149,6 @@ contract DeployProtocol is Script {
 
         vm.stopBroadcast();
 
-        return (
-            lendingProtocol,
-            currencyManager,
-            collectionManager,
-            vaultsFactory,
-            liquidation,
-            purchaseBundler
-        );
+        return (lendingProtocol, currencyManager, collectionManager, vaultsFactory, liquidation, purchaseBundler);
     }
 }
-

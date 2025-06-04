@@ -8,7 +8,6 @@ pragma solidity 0.8.30;
  * collateralized NFTs for sale, with proceeds automatically repaying the loan.
  */
 interface IPurchaseBundler {
-
     struct SaleListing {
         bytes32 loanId;
         address seller; // Borrower
@@ -18,8 +17,8 @@ interface IPurchaseBundler {
         uint256 price; // Asking price in loan currency
         address currency; // Loan currency
         bool isActive;
-        // address specificBuyer; // If listing is for a specific buyer initially
     }
+    // address specificBuyer; // If listing is for a specific buyer initially
 
     // --- Events ---
     event CollateralListedForSale( // Also in ILendingProtocol, consider if needed here or just one place
@@ -31,10 +30,7 @@ interface IPurchaseBundler {
         address currency
     );
 
-    event SaleListingCancelled(
-        bytes32 indexed loanId,
-        address indexed seller
-    );
+    event SaleListingCancelled(bytes32 indexed loanId, address indexed seller);
 
     event CollateralSoldAndRepaid( // Also in ILendingProtocol
         bytes32 indexed loanId,
@@ -67,8 +63,10 @@ interface IPurchaseBundler {
         bool isVault,
         uint256 price,
         address currency
+    )
         // address specificBuyer // Optional: if only a specific buyer can purchase initially
-    ) external returns (bytes32 listingId);
+        external
+        returns (bytes32 listingId);
 
     /**
      * @notice Allows a buyer to purchase a listed NFT.

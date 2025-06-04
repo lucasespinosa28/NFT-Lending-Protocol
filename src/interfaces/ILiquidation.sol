@@ -8,7 +8,6 @@ pragma solidity 0.8.30;
  * This includes buyouts for multi-tranche loans and auctions.
  */
 interface ILiquidation {
-
     enum AuctionStatus {
         PENDING,
         ACTIVE,
@@ -35,45 +34,26 @@ interface ILiquidation {
 
     // --- Events ---
     event BuyoutInitiated(
-        bytes32 indexed loanId,
-        address indexed largestLender,
-        uint256 buyoutPrice,
-        uint64 buyoutDeadline
+        bytes32 indexed loanId, address indexed largestLender, uint256 buyoutPrice, uint64 buyoutDeadline
     );
-    event BuyoutCompleted(
-        bytes32 indexed loanId,
-        address indexed buyer, // The largest lender who bought out others
-        uint256 amountPaid
-    );
+    event BuyoutCompleted( // The largest lender who bought out others
+    bytes32 indexed loanId, address indexed buyer, uint256 amountPaid);
     event BuyoutFailed(bytes32 indexed loanId); // e.g. deadline passed
 
-    event AuctionStarted(
-        bytes32 indexed auctionId, // Could be loanId or a new ID
+    event AuctionStarted( // Could be loanId or a new ID
+        bytes32 indexed auctionId,
         bytes32 indexed loanId,
         address nftContract,
         uint256 nftTokenId,
         uint256 startingBid,
         uint64 endTime
     );
-    event BidPlaced(
-        bytes32 indexed auctionId,
-        address indexed bidder,
-        uint256 amount
-    );
-    event AuctionEnded(
-        bytes32 indexed auctionId,
-        address winner, // address(0) if no bids
-        uint256 winningBid
-    );
-    event ProceedsDistributed(
-        bytes32 indexed auctionId,
-        uint256 totalProceeds
-    );
+    event BidPlaced(bytes32 indexed auctionId, address indexed bidder, uint256 amount);
+    event AuctionEnded( // address(0) if no bids
+    bytes32 indexed auctionId, address winner, uint256 winningBid);
+    event ProceedsDistributed(bytes32 indexed auctionId, uint256 totalProceeds);
     event CollateralClaimedPostAuction( // If auction fails and original lender(s) claim
-        bytes32 indexed auctionId,
-        address claimer
-    );
-
+    bytes32 indexed auctionId, address claimer);
 
     // --- Functions ---
 
@@ -85,12 +65,8 @@ interface ILiquidation {
      * @param buyoutPrice The total amount required to buy out other tranches.
      * @param buyoutDeadline Timestamp by which the buyout must be completed.
      */
-    function initiateBuyout(
-        bytes32 loanId,
-        address largestLender,
-        uint256 buyoutPrice,
-        uint64 buyoutDeadline
-    ) external;
+    function initiateBuyout(bytes32 loanId, address largestLender, uint256 buyoutPrice, uint64 buyoutDeadline)
+        external;
 
     /**
      * @notice Allows the largest lender to execute the buyout of other tranches.
@@ -154,7 +130,6 @@ interface ILiquidation {
      * @param auctionId The ID of the failed auction.
      */
     function claimCollateralPostAuction(bytes32 auctionId) external;
-
 
     // --- Getters ---
     function getAuction(bytes32 auctionId) external view returns (Auction memory);

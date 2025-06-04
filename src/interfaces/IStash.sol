@@ -11,21 +11,16 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
  * The Stash contract would itself be an ERC721, minting a new "wrapped" token
  * when an original token is deposited.
  */
-interface IStash is IERC721 { // The Stash itself is an ERC721
+interface IStash is
+    IERC721 // The Stash itself is an ERC721
+{
     // --- Events ---
-    event TokenStashed(
-        address indexed originalContract,
-        uint256 originalTokenId, // Removed indexed from here
-        address indexed stasher,
-        uint256 indexed stashTokenId // The new token ID minted by this Stash contract
-    );
+    event TokenStashed( // Removed indexed from here
+        // The new token ID minted by this Stash contract
+    address indexed originalContract, uint256 originalTokenId, address indexed stasher, uint256 indexed stashTokenId);
 
-    event TokenUnstashed(
-        uint256 indexed stashTokenId, // The token ID burned by this Stash contract
-        address indexed originalContract,
-        uint256 originalTokenId,
-        address indexed unstasher
-    );
+    event TokenUnstashed( // The token ID burned by this Stash contract
+    uint256 indexed stashTokenId, address indexed originalContract, uint256 originalTokenId, address indexed unstasher);
 
     // --- Functions ---
 
@@ -36,10 +31,7 @@ interface IStash is IERC721 { // The Stash itself is an ERC721
      * @param originalTokenId The token ID of the original NFT.
      * @return stashTokenId The token ID of the newly minted wrapped NFT from this Stash contract.
      */
-    function stash(
-        address originalContract,
-        uint256 originalTokenId
-    ) external returns (uint256 stashTokenId);
+    function stash(address originalContract, uint256 originalTokenId) external returns (uint256 stashTokenId);
 
     /**
      * @notice Burns a wrapped NFT (stashTokenId) and returns the original NFT to the owner.
@@ -58,11 +50,7 @@ interface IStash is IERC721 { // The Stash itself is an ERC721
     function getOriginalTokenInfo(uint256 stashTokenId)
         external
         view
-        returns (
-            address originalContract,
-            uint256 originalTokenId,
-            address owner
-        );
+        returns (address originalContract, uint256 originalTokenId, address owner);
 
     /**
      * @notice Checks if a given original token is currently stashed.

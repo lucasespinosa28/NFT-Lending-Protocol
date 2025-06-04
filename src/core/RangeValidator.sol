@@ -11,7 +11,6 @@ import {IRangeValidator} from "../interfaces/IRangeValidator.sol";
  * @dev Implements IRangeValidator. This is a placeholder implementation.
  */
 contract RangeValidator is IRangeValidator, Ownable {
-
     struct RangeRule {
         uint256 minTokenId;
         uint256 maxTokenId;
@@ -19,6 +18,7 @@ contract RangeValidator is IRangeValidator, Ownable {
         bool exists;
     }
     // collectionAddress => ruleId (simple counter per collection or hash) => Rule
+
     mapping(address => mapping(uint256 => RangeRule)) public collectionRangeRules;
     mapping(address => uint256) public collectionRuleCounters; // To generate rule IDs
 
@@ -27,10 +27,12 @@ contract RangeValidator is IRangeValidator, Ownable {
 
     constructor() Ownable(msg.sender) {}
 
-    function isTokenIdValidForCollectionOffer(
-        address collectionAddress,
-        uint256 tokenId
-    ) external view override returns (bool) {
+    function isTokenIdValidForCollectionOffer(address collectionAddress, uint256 tokenId)
+        external
+        view
+        override
+        returns (bool)
+    {
         // 1. Check specific validator if set
         if (collectionSpecificValidators[collectionAddress] != address(0)) {
             // Call the external validator contract
@@ -66,22 +68,17 @@ contract RangeValidator is IRangeValidator, Ownable {
         return false; // Placeholder: must be implemented correctly
     }
 
-    function setTokenIdRangeRule(
-        address collectionAddress,
-        uint256 minTokenId,
-        uint256 maxTokenId,
-        bool isAllowed
-    ) external override onlyOwner {
+    function setTokenIdRangeRule(address collectionAddress, uint256 minTokenId, uint256 maxTokenId, bool isAllowed)
+        external
+        override
+        onlyOwner
+    {
         require(collectionAddress != address(0), "Zero address");
         require(minTokenId <= maxTokenId, "Min > Max");
 
         uint256 ruleId = collectionRuleCounters[collectionAddress]++;
-        collectionRangeRules[collectionAddress][ruleId] = RangeRule({
-            minTokenId: minTokenId,
-            maxTokenId: maxTokenId,
-            isAllowed: isAllowed,
-            exists: true
-        });
+        collectionRangeRules[collectionAddress][ruleId] =
+            RangeRule({minTokenId: minTokenId, maxTokenId: maxTokenId, isAllowed: isAllowed, exists: true});
 
         emit RangeRuleSet(collectionAddress, minTokenId, maxTokenId, isAllowed);
     }

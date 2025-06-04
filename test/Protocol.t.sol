@@ -24,12 +24,12 @@ contract ProtocolTest is Test {
     Liquidation liquidation;
     PurchaseBundler purchaseBundler;
 
-    ERC20Mock weth; 
-    ERC20Mock usdc; 
-    ERC721Mock nftCollection; 
+    ERC20Mock weth;
+    ERC20Mock usdc;
+    ERC721Mock nftCollection;
 
     address alice = vm.addr(1); // Lender
-    address bob = vm.addr(2);   // Borrower
+    address bob = vm.addr(2); // Borrower
     address charlie = vm.addr(3); // Another user
 
     uint256 constant WETH_STARTING_BALANCE = 1000 ether;
@@ -37,17 +37,17 @@ contract ProtocolTest is Test {
 
     function setUp() public {
         // Deploy Mock Tokens
-        weth = new ERC20Mock("Wrapped Ether", "WETH"); 
-        usdc = new ERC20Mock("USD Coin", "USDC");     
+        weth = new ERC20Mock("Wrapped Ether", "WETH");
+        usdc = new ERC20Mock("USD Coin", "USDC");
 
         // Deploy NFT Collection
-        nftCollection = new ERC721Mock("Test NFT", "TNFT"); 
+        nftCollection = new ERC721Mock("Test NFT", "TNFT");
 
         // Deploy Managers
         address[] memory initialCurrencies = new address[](1);
         initialCurrencies[0] = address(weth);
         currencyManager = new CurrencyManager(initialCurrencies);
-        currencyManager.addSupportedCurrency(address(usdc)); 
+        currencyManager.addSupportedCurrency(address(usdc));
 
         address[] memory initialCollections = new address[](1);
         initialCollections[0] = address(nftCollection);
@@ -57,8 +57,8 @@ contract ProtocolTest is Test {
         vaultsFactory = new VaultsFactory("Test Vaults", "TVF");
 
         // Deploy Liquidation and PurchaseBundler (need LP address later)
-        liquidation = new Liquidation(address(0)); 
-        purchaseBundler = new PurchaseBundler(address(0)); 
+        liquidation = new Liquidation(address(0));
+        purchaseBundler = new PurchaseBundler(address(0));
 
         // Deploy LendingProtocol
         lendingProtocol = new LendingProtocol(
@@ -80,8 +80,8 @@ contract ProtocolTest is Test {
         usdc.mint(bob, USDC_STARTING_BALANCE);
 
         // Mint NFT to Bob
-        nftCollection.mint(bob, 1); 
-        nftCollection.mint(bob, 2); 
+        nftCollection.mint(bob, 1);
+        nftCollection.mint(bob, 2);
     }
 
     function test_InitialSetup() public {
@@ -100,8 +100,8 @@ contract ProtocolTest is Test {
         uint256 originationFee = 100; // 1%
 
         vm.startPrank(alice);
-        weth.approve(address(lendingProtocol), principal + (principal * originationFee / 10000) ); 
-        
+        weth.approve(address(lendingProtocol), principal + (principal * originationFee / 10000));
+
         ILendingProtocol.OfferParams memory offerParams = ILendingProtocol.OfferParams({
             offerType: ILendingProtocol.OfferType.STANDARD,
             nftContract: address(nftCollection),
@@ -126,7 +126,7 @@ contract ProtocolTest is Test {
 
         // Bob (borrower) accepts the offer
         vm.startPrank(bob);
-        nftCollection.approve(address(lendingProtocol), 1); 
+        nftCollection.approve(address(lendingProtocol), 1);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(nftCollection), 1);
         vm.stopPrank();
 
@@ -134,8 +134,10 @@ contract ProtocolTest is Test {
         assertEq(loan.borrower, bob);
         assertEq(loan.lender, alice);
         assertEq(loan.principalAmount, principal);
-        assertEq(nftCollection.ownerOf(1), address(lendingProtocol)); 
-        assertTrue(weth.balanceOf(bob) >= WETH_STARTING_BALANCE + principal - (principal * originationFee / 10000) - 100 wei); 
+        assertEq(nftCollection.ownerOf(1), address(lendingProtocol));
+        assertTrue(
+            weth.balanceOf(bob) >= WETH_STARTING_BALANCE + principal - (principal * originationFee / 10000) - 100 wei
+        );
 
         // Fast forward time (but not past due date)
         vm.warp(block.timestamp + 15 days);
@@ -151,14 +153,14 @@ contract ProtocolTest is Test {
 
         loan = lendingProtocol.getLoan(loanId);
         assertEq(uint256(loan.status), uint256(ILendingProtocol.LoanStatus.REPAID), "Loan status should be REPAID");
-        assertEq(nftCollection.ownerOf(1), bob); 
-        assertTrue(weth.balanceOf(alice) > WETH_STARTING_BALANCE); 
+        assertEq(nftCollection.ownerOf(1), bob);
+        assertTrue(weth.balanceOf(alice) > WETH_STARTING_BALANCE);
     }
 
     function test_Fail_AcceptExpiredOffer() public {
         vm.startPrank(alice);
-        weth.approve(address(lendingProtocol), 1 ether); 
-        
+        weth.approve(address(lendingProtocol), 1 ether);
+
         ILendingProtocol.OfferParams memory offerParams = ILendingProtocol.OfferParams({
             offerType: ILendingProtocol.OfferType.STANDARD,
             nftContract: address(nftCollection),
@@ -194,4 +196,3 @@ contract ProtocolTest is Test {
     // - Vaults
     // - Edge cases, security checks (reentrancy, access control)
 }
-
