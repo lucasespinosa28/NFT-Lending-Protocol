@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.30;
+pragma solidity 0.8.26;
 
 import {Script, console} from "forge-std/Script.sol";
 //import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
@@ -17,6 +17,12 @@ import {Stash} from "../src/core/Stash.sol";
 import {ERC20Mock} from "../src/mocks/ERC20Mock.sol";
 import {ERC721Mock} from "../src/mocks/ERC721Mock.sol";
 
+// Testnet/Local - Mock for IPAssetRegistry
+import {MockIPAssetRegistry} from "../src/mocks/MockIPAssetRegistry.sol";
+
+import {RoyaltyManager} from "../src/core/RoyaltyManager.sol";
+import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/IIPAssetRegistry.sol";
+
 contract DeployProtocol is Script {
     CurrencyManager currencyManager;
     CollectionManager collectionManager;
@@ -30,6 +36,9 @@ contract DeployProtocol is Script {
     ERC20Mock weth;
     ERC20Mock usdc;
     ERC721Mock mockNftCollection1;
+
+    RoyaltyManager royaltyManager;
+    IIPAssetRegistry ipAssetRegistry;
 
     function run()
         external
@@ -129,9 +138,11 @@ contract DeployProtocol is Script {
         lendingProtocol = new LendingProtocol(
             address(currencyManager),
             address(collectionManager),
-            address(vaultsFactory), // Use address(vaultsFactory) or address(0)
+            address(vaultsFactory),
             address(liquidation),
-            address(purchaseBundler)
+            address(purchaseBundler),
+            address(royaltyManager),
+            address(ipAssetRegistry)
         );
         console.log("Deployed LendingProtocol at:", address(lendingProtocol));
 

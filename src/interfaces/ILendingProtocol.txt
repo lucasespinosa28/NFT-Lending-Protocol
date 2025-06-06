@@ -242,11 +242,6 @@ interface ILendingProtocol {
      */
     function claimCollateral(bytes32 loanId) external;
 
-    // --- Collateral Sale Functions ---
-    function listCollateralForSale(bytes32 loanId, uint256 price) external;
-    function cancelCollateralSale(bytes32 loanId) external;
-    function buyCollateralAndRepay(bytes32 loanId, uint256 salePrice) external;
-
     // --- Getters ---
     function getLoan(bytes32 loanId) external view returns (Loan memory);
     function getLoanOffer(bytes32 offerId) external view returns (LoanOffer memory);

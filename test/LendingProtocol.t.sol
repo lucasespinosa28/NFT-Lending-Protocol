@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.30;
+pragma solidity 0.8.26;
 
 import {Test, console} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
@@ -87,12 +87,18 @@ contract LendingProtocolTest is Test {
         purchaseBundler = new PurchaseBundler(address(0));
 
         // 4. Deploy LendingProtocol
+        // Add mocks for new dependencies
+        address dummyRoyaltyManager = address(0xdeadbeef01);
+        address dummyIpAssetRegistry = address(0xdeadbeef02);
+
         lendingProtocol = new LendingProtocol(
             address(currencyManager),
             address(collectionManager),
             address(vaultsFactory),
             address(liquidation),
-            address(purchaseBundler)
+            address(purchaseBundler),
+            dummyRoyaltyManager,
+            dummyIpAssetRegistry
         );
 
         // 5. Set LendingProtocol address in Liquidation and PurchaseBundler

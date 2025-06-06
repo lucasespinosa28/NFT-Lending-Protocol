@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.30;
+pragma solidity 0.8.26;
 
 import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
 import {Owned} from "solmate/auth/Owned.sol";
