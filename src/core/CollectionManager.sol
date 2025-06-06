@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
-
+import {Owned} from "solmate/auth/Owned.sol";
+import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 /**
  * @title CollectionManager
  * @author Your Name/Team
  * @notice Manages whitelisted NFT collections for collateral.
  * @dev Implements ICollectionManager. This is a placeholder implementation.
  */
-contract CollectionManager is ICollectionManager, Ownable {
+contract CollectionManager is ICollectionManager, Owned, ReentrancyGuard{
     mapping(address => bool) private whitelistedCollections;
     address[] private collectionList;
     // mapping(address => uint256) public collectionMaxLTVs; // Example for LTV
 
-    constructor(address[] memory initialCollections) Ownable(msg.sender) {
+    constructor(address[] memory initialCollections) Owned(msg.sender) {
         for (uint256 i = 0; i < initialCollections.length; i++) {
             _addWhitelistedCollection(initialCollections[i]);
         }
