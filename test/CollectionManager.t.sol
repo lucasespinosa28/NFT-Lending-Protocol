@@ -15,7 +15,7 @@ contract CollectionManagerTest is Test {
         owner = address(this);
         address[] memory initialCollections = new address[](0);
         manager = new CollectionManager(initialCollections);
-        
+
         // Deploy mock NFTs
         mockNFT1 = new MockERC721("Mock1", "MK1");
         mockNFT2 = new MockERC721("Mock2", "MK2");
@@ -35,7 +35,7 @@ contract CollectionManagerTest is Test {
     function testGetWhitelistedCollections() public {
         manager.addWhitelistedCollection(address(mockNFT1));
         manager.addWhitelistedCollection(address(mockNFT2));
-        
+
         address[] memory collections = manager.getWhitelistedCollections();
         assertEq(collections.length, 2);
         assertTrue(collections[0] == address(mockNFT1) || collections[1] == address(mockNFT1));

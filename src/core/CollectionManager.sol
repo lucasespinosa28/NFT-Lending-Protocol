@@ -10,7 +10,8 @@ import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
  * @notice Manages whitelisted NFT collections for collateral.
  * @dev Implements ICollectionManager. This is a placeholder implementation.
  */
-contract CollectionManager is ICollectionManager, Owned, ReentrancyGuard{
+
+contract CollectionManager is ICollectionManager, Owned, ReentrancyGuard {
     mapping(address => bool) private whitelistedCollections;
     address[] private collectionList;
     // mapping(address => uint256) public collectionMaxLTVs; // Example for LTV
