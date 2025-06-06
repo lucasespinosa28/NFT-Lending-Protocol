@@ -7,3 +7,6 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/transmissions11/solmate
+[submodule "protocol-core-v1"]
+	path = protocol-core-v1
+	url = https://github.com/storyprotocol/protocol-core-v1.git
