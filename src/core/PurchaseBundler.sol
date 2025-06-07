@@ -47,11 +47,16 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         uint256 nftTokenId,
         bool isVault,
         uint256 price,
-        address currency
+        address currency,
+        address actualSeller
     ) external override returns (bytes32 listingId) {
         require(address(lendingProtocol) != address(0), "LP not set");
+        // LendingProtocol has already verified the original caller is the borrower.
+        // This function should only be callable by LendingProtocol.
+        require(msg.sender == address(lendingProtocol), "PB: Caller not LendingProtocol");
+
         ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
-        require(loan.borrower == msg.sender, "Not borrower of this loan");
+        // require(loan.borrower == original_caller_validated_by_lp, "Not borrower of this loan"); // This check is now done by LP
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         require(price > 0, "Price must be > 0");
 
@@ -63,7 +68,7 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
 
         saleListings[listingId] = SaleListing({
             loanId: loanId,
-            seller: msg.sender,
+            seller: actualSeller, // Use actualSeller from parameters
             nftContract: nftContract,
             nftTokenId: nftTokenId,
             isVault: isVault,
@@ -112,7 +117,14 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
             }
         }
 
+        // Transfer NFT from LendingProtocol (escrow) to buyer (msg.sender)
+        // LendingProtocol must have approved PurchaseBundler for this token ID during listing.
+        IERC721(listing.nftContract).safeTransferFrom(address(lendingProtocol), msg.sender, listing.nftTokenId);
+
         listing.isActive = false;
+
+        // Call LendingProtocol to update loan status to REPAID.
+        lendingProtocol.recordLoanRepaymentViaSale(listing.loanId, loan.principalAmount, interest);
 
         emit CollateralSoldAndRepaid(
             listing.loanId, msg.sender, listing.nftContract, listing.nftTokenId, paymentAmount, totalDebt, surplus

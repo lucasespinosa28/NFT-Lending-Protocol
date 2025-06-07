@@ -2,8 +2,8 @@
 pragma solidity 0.8.26;
 
 import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
-import {Owned} from "solmate/auth/Owned.sol";
-import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
+import {Owned} from "solmate/auth/Owned.sol"; // Keep Solmate's Owned for now unless it also causes issues
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; // Changed to OpenZeppelin
 /**
  * @title CollectionManager
  * @author Your Name/Team

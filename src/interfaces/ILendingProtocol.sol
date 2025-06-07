@@ -256,4 +256,14 @@ interface ILendingProtocol {
     function calculateInterest(bytes32 loanId) external view returns (uint256 interestDue);
     function isLoanRepayable(bytes32 loanId) external view returns (bool);
     function isLoanInDefault(bytes32 loanId) external view returns (bool);
+
+    /**
+     * @notice Called by an authorized contract (e.g., PurchaseBundler) to record that a loan has been repaid
+     * through an external mechanism like a collateral sale.
+     * @dev Updates loan status to REPAID and records accrued interest.
+     * @param loanId The ID of the loan that was repaid.
+     * @param principalRepaid The amount of principal repaid.
+     * @param interestRepaid The amount of interest repaid.
+     */
+    function recordLoanRepaymentViaSale(bytes32 loanId, uint256 principalRepaid, uint256 interestRepaid) external;
 }

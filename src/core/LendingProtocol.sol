@@ -555,6 +555,29 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
         require(msg.sender == loan.borrower, "Only borrower can list");
+
+        // Approve PurchaseBundler to take the NFT on sale
+        IERC721(loan.nftContract).approve(address(purchaseBundler), loan.nftTokenId);
+
+        // Call PurchaseBundler to list it
+        // Ensure purchaseBundler address is set and valid
+        require(address(purchaseBundler) != address(0), "PurchaseBundler not set");
+
+        bytes32 listingId = IPurchaseBundler(address(purchaseBundler)).listCollateralForSale(
+            loanId,
+            loan.nftContract,
+            loan.nftTokenId,
+            loan.isVault,
+            price,
+            loan.currency,
+            loan.borrower // Pass the original borrower as actualSeller
+        );
+
+        // Optional: Check if listingId from purchaseBundler matches loanId or handle as needed.
+        // For now, assume they are consistent or PurchaseBundler uses loanId as listingId.
+
+        // LendingProtocol emits its own event as well, or relies on PurchaseBundler's event.
+        // The interface already has this event.
         emit CollateralListedForSale(loanId, msg.sender, loan.nftContract, loan.nftTokenId, price);
     }
 
@@ -594,5 +617,39 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         returns (bytes4)
     {
         return this.onERC721Received.selector;
+    }
+
+    function recordLoanRepaymentViaSale(bytes32 loanId, uint256 principalRepaid, uint256 interestRepaid)
+        external
+        override
+        nonReentrant // Good practice, though specific reentrancy vector here needs thought
+    {
+        // Ensure caller is authorized (e.g., the PurchaseBundler contract)
+        // This assumes purchaseBundler is the only one that should call this.
+        // If other mechanisms can repay this way, a more general authorization is needed.
+        require(msg.sender == address(purchaseBundler), "LP: Caller not authorized PurchaseBundler");
+
+        Loan storage currentLoan = loans[loanId];
+        require(currentLoan.status == LoanStatus.ACTIVE, "LP: Loan not active for repayment via sale");
+
+        // The principal and interest amounts are what the PurchaseBundler determined were paid to the lender.
+        // The LendingProtocol trusts the PurchaseBundler's accounting for this flow.
+        // We should verify that principalRepaid matches currentLoan.principalAmount if full principal is always expected.
+        // For now, let's assume principalRepaid is the original principal.
+        require(principalRepaid == currentLoan.principalAmount, "LP: Principal mismatch in sale settlement");
+
+        // Transfer the repaid funds (which PurchaseBundler sent to this contract) to the lender
+        IERC20(currentLoan.currency).safeTransfer(currentLoan.lender, principalRepaid + interestRepaid);
+
+        currentLoan.accruedInterest = interestRepaid;
+        currentLoan.status = LoanStatus.REPAID;
+
+        // Note: The LoanRepaid event is typically emitted by the function that processes the actual repayment actions.
+        // PurchaseBundler emits CollateralSoldAndRepaid. LendingProtocol could emit its own LoanRepaid event here too,
+        // or the system relies on PurchaseBundler's event for this flow.
+        // For consistency with other repayment functions, let's emit LoanRepaid.
+        // The `msg.sender` for `emit LoanRepaid` would be `address(purchaseBundler)`.
+        // The `borrower` is `currentLoan.borrower`.
+        emit LoanRepaid(loanId, currentLoan.borrower, currentLoan.lender, currentLoan.principalAmount, interestRepaid);
     }
 }
