@@ -37,8 +37,7 @@ interface ILiquidation {
         bytes32 indexed loanId, address indexed largestLender, uint256 buyoutPrice, uint64 buyoutDeadline
     );
     event BuyoutCompleted( // The largest lender who bought out others
-        bytes32 indexed loanId, address indexed buyer, uint256 amountPaid
-    );
+    bytes32 indexed loanId, address indexed buyer, uint256 amountPaid);
     event BuyoutFailed(bytes32 indexed loanId); // e.g. deadline passed
 
     event AuctionStarted( // Could be loanId or a new ID
@@ -51,12 +50,10 @@ interface ILiquidation {
     );
     event BidPlaced(bytes32 indexed auctionId, address indexed bidder, uint256 amount);
     event AuctionEnded( // address(0) if no bids
-        bytes32 indexed auctionId, address winner, uint256 winningBid
-    );
+    bytes32 indexed auctionId, address winner, uint256 winningBid);
     event ProceedsDistributed(bytes32 indexed auctionId, uint256 totalProceeds);
     event CollateralClaimedPostAuction( // If auction fails and original lender(s) claim
-        bytes32 indexed auctionId, address claimer
-    );
+    bytes32 indexed auctionId, address claimer);
 
     // --- Functions ---
 

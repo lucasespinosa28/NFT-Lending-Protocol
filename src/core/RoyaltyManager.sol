@@ -18,21 +18,17 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
 
     mapping(address => uint256) public ipaRoyaltyClaims;
 
-    constructor(
-        address ipAssetRegistry,
-        address royaltyModule,
-        address licensingModule,
-        address licenseRegistry
-    ) Ownable(msg.sender) {
+    constructor(address ipAssetRegistry, address royaltyModule, address licensingModule, address licenseRegistry)
+        Ownable(msg.sender)
+    {
         IP_ASSET_REGISTRY = IIPAssetRegistry(ipAssetRegistry);
         ROYALTY_MODULE = IRoyaltyModule(royaltyModule);
         LICENSING_MODULE = ILicensingModule(licensingModule);
         LICENSE_REGISTRY = ILicenseRegistry(licenseRegistry);
     }
+
     function claimRoyalty(address ipId) external override {
-        address[] memory parentIpIds = new address[](
-            LICENSE_REGISTRY.getParentIpCount(ipId)
-        );
+        address[] memory parentIpIds = new address[](LICENSE_REGISTRY.getParentIpCount(ipId));
         for (uint256 i = 0; i < parentIpIds.length; i++) {
             parentIpIds[i] = LICENSE_REGISTRY.getParentIp(ipId, i);
         }
@@ -40,21 +36,9 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
         if (parentIpIds.length > 0) {
             address[] memory royaltyPolicies = new address[](parentIpIds.length);
             for (uint256 i = 0; i < parentIpIds.length; i++) {
-                (
-                    address licenseTemplate,
-                    uint256 licenseTermsId
-                ) = LICENSE_REGISTRY.getParentLicenseTerms(
-                        ipId,
-                        parentIpIds[i]
-                    );
-                (
-                    address royaltyPolicy,
-                    ,
-                    ,
-
-                ) = ILicenseTemplate(licenseTemplate).getRoyaltyPolicy(
-                        licenseTermsId
-                    );
+                (address licenseTemplate, uint256 licenseTermsId) =
+                    LICENSE_REGISTRY.getParentLicenseTerms(ipId, parentIpIds[i]);
+                (address royaltyPolicy,,,) = ILicenseTemplate(licenseTemplate).getRoyaltyPolicy(licenseTermsId);
                 royaltyPolicies[i] = royaltyPolicy;
             }
 
@@ -69,10 +53,11 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
                 // If you want to actually withdraw, you need to implement a withdrawal mechanism.
             }
             ipaRoyaltyClaims[ipId] += amount;
-            
+
             emit RoyaltyClaimed(ipId, amount);
         }
     }
+
     function getRoyaltyBalance(address ipId) external view override returns (uint256) {
         return ipaRoyaltyClaims[ipId];
     }

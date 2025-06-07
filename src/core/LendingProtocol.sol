@@ -18,12 +18,7 @@ import {IPurchaseBundler} from "../interfaces/IPurchaseBundler.sol";
 import {IRoyaltyManager} from "../interfaces/IRoyaltyManager.sol";
 import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/IIPAssetRegistry.sol";
 
-contract LendingProtocol is
-    ILendingProtocol,
-    Ownable,
-    ReentrancyGuard,
-    IERC721Receiver
-{
+contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for IERC20;
 
     ICurrencyManager public currencyManager;
@@ -74,23 +69,11 @@ contract LendingProtocol is
         address _ipAssetRegistry
     ) Ownable(msg.sender) {
         require(_currencyManager != address(0), "CurrencyManager zero address");
-        require(
-            _collectionManager != address(0),
-            "CollectionManager zero address"
-        );
-        require(
-            _liquidationContract != address(0),
-            "LiquidationContract zero address"
-        );
-        require(
-            _purchaseBundler != address(0),
-            "PurchaseBundler zero address"
-        );
+        require(_collectionManager != address(0), "CollectionManager zero address");
+        require(_liquidationContract != address(0), "LiquidationContract zero address");
+        require(_purchaseBundler != address(0), "PurchaseBundler zero address");
         require(_royaltyManager != address(0), "RoyaltyManager zero address");
-        require(
-            _ipAssetRegistry != address(0),
-            "IPAssetRegistry zero address"
-        );
+        require(_ipAssetRegistry != address(0), "IPAssetRegistry zero address");
 
         currencyManager = ICurrencyManager(_currencyManager);
         collectionManager = ICollectionManager(_collectionManager);
@@ -103,50 +86,27 @@ contract LendingProtocol is
         ipAssetRegistry = IIPAssetRegistry(_ipAssetRegistry);
     }
 
-    function makeLoanOffer(OfferParams calldata params)
-        external
-        override
-        nonReentrant
-        returns (bytes32 offerId)
-    {
-        require(
-            currencyManager.isCurrencySupported(params.currency),
-            "Currency not supported"
-        );
+    function makeLoanOffer(OfferParams calldata params) external override nonReentrant returns (bytes32 offerId) {
+        require(currencyManager.isCurrencySupported(params.currency), "Currency not supported");
         require(params.principalAmount > 0, "Principal must be > 0");
         require(params.durationSeconds > 0, "Duration must be > 0");
-        require(
-            params.expirationTimestamp > block.timestamp,
-            "Expiration in past"
-        );
+        require(params.expirationTimestamp > block.timestamp, "Expiration in past");
 
         if (params.offerType == OfferType.STANDARD) {
-            require(
-                params.nftContract != address(0),
-                "NFT contract address needed"
-            );
-            require(
-                collectionManager.isCollectionWhitelisted(params.nftContract),
-                "Collection not whitelisted"
-            );
+            require(params.nftContract != address(0), "NFT contract address needed");
+            require(collectionManager.isCollectionWhitelisted(params.nftContract), "Collection not whitelisted");
         } else {
             // Collection Offer
-            require(
-                collectionManager.isCollectionWhitelisted(params.nftContract),
-                "Collection not whitelisted"
-            );
+            require(collectionManager.isCollectionWhitelisted(params.nftContract), "Collection not whitelisted");
             require(params.totalCapacity > 0, "Total capacity must be > 0");
             require(
-                params.maxPrincipalPerLoan > 0 &&
-                    params.maxPrincipalPerLoan <= params.totalCapacity,
+                params.maxPrincipalPerLoan > 0 && params.maxPrincipalPerLoan <= params.totalCapacity,
                 "Invalid max principal per loan"
             );
         }
 
         offerCounter++;
-        offerId = keccak256(
-            abi.encodePacked("offer", offerCounter, msg.sender, block.timestamp)
-        );
+        offerId = keccak256(abi.encodePacked("offer", offerCounter, msg.sender, block.timestamp));
 
         loanOffers[offerId] = LoanOffer({
             offerId: offerId,
@@ -182,11 +142,12 @@ contract LendingProtocol is
         return offerId;
     }
 
-    function acceptLoanOffer(
-        bytes32 offerId,
-        address nftContract,
-        uint256 nftTokenId
-    ) external override nonReentrant returns (bytes32 loanId) {
+    function acceptLoanOffer(bytes32 offerId, address nftContract, uint256 nftTokenId)
+        external
+        override
+        nonReentrant
+        returns (bytes32 loanId)
+    {
         LoanOffer storage offer = loanOffers[offerId];
         require(offer.isActive, "Offer not active");
         require(offer.expirationTimestamp > block.timestamp, "Offer expired");
@@ -202,44 +163,24 @@ contract LendingProtocol is
         } else {
             collateralContract = nftContract;
             collateralTokenId = nftTokenId;
-            require(
-                collectionManager.isCollectionWhitelisted(collateralContract),
-                "Collection not whitelisted"
-            );
+            require(collectionManager.isCollectionWhitelisted(collateralContract), "Collection not whitelisted");
         }
 
-        if (
-            address(vaultsFactory) != address(0) &&
-            vaultsFactory.isVault(collateralTokenId)
-        ) {
-            require(
-                vaultsFactory.ownerOfVault(collateralTokenId) == msg.sender,
-                "Not vault owner"
-            );
+        if (address(vaultsFactory) != address(0) && vaultsFactory.isVault(collateralTokenId)) {
+            require(vaultsFactory.ownerOfVault(collateralTokenId) == msg.sender, "Not vault owner");
             isCollateralVault = true;
             collateralContract = address(vaultsFactory);
         } else {
-            require(
-                IERC721(collateralContract).ownerOf(collateralTokenId) ==
-                    msg.sender,
-                "Not NFT owner"
-            );
+            require(IERC721(collateralContract).ownerOf(collateralTokenId) == msg.sender, "Not NFT owner");
         }
 
-        IERC721(collateralContract).safeTransferFrom(
-            msg.sender,
-            address(this),
-            collateralTokenId
-        );
+        IERC721(collateralContract).safeTransferFrom(msg.sender, address(this), collateralTokenId);
 
         loanCounter++;
-        loanId = keccak256(
-            abi.encodePacked("loan", loanCounter, msg.sender, offerId)
-        );
+        loanId = keccak256(abi.encodePacked("loan", loanCounter, msg.sender, offerId));
         uint64 startTime = uint64(block.timestamp);
         uint64 dueTime = startTime + uint64(offer.durationSeconds);
-        uint256 originationFee = (offer.principalAmount *
-            offer.originationFeeRate) / 10000;
+        uint256 originationFee = (offer.principalAmount * offer.originationFeeRate) / 10000;
 
         loans[loanId] = Loan({
             loanId: loanId,
@@ -261,17 +202,9 @@ contract LendingProtocol is
 
         offer.isActive = false;
 
-        IERC20(offer.currency).safeTransferFrom(
-            offer.lender,
-            msg.sender,
-            offer.principalAmount - originationFee
-        );
+        IERC20(offer.currency).safeTransferFrom(offer.lender, msg.sender, offer.principalAmount - originationFee);
         if (originationFee > 0) {
-            IERC20(offer.currency).safeTransferFrom(
-                offer.lender,
-                offer.lender,
-                originationFee
-            );
+            IERC20(offer.currency).safeTransferFrom(offer.lender, offer.lender, originationFee);
         }
 
         emit OfferAccepted(
@@ -302,13 +235,10 @@ contract LendingProtocol is
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
 
-        uint256 timeElapsed = block.timestamp < loan.dueTime
-            ? block.timestamp - loan.startTime
-            : loan.dueTime - loan.startTime;
+        uint256 timeElapsed =
+            block.timestamp < loan.dueTime ? block.timestamp - loan.startTime : loan.dueTime - loan.startTime;
 
-        uint256 interest = (loan.principalAmount *
-            loan.interestRateAPR *
-            timeElapsed) / (365 days * 10000);
+        uint256 interest = (loan.principalAmount * loan.interestRateAPR * timeElapsed) / (365 days * 10000);
 
         return interest;
     }
@@ -317,36 +247,19 @@ contract LendingProtocol is
         Loan storage currentLoan = loans[loanId];
         require(currentLoan.borrower == msg.sender, "Not borrower");
         require(currentLoan.status == LoanStatus.ACTIVE, "Loan not active");
-        require(
-            block.timestamp <= currentLoan.dueTime,
-            "Loan past due (defaulted)"
-        );
+        require(block.timestamp <= currentLoan.dueTime, "Loan past due (defaulted)");
 
         uint256 interest = calculateInterest(loanId);
         uint256 totalRepayment = currentLoan.principalAmount + interest;
 
-        IERC20(currentLoan.currency).safeTransferFrom(
-            msg.sender,
-            currentLoan.lender,
-            totalRepayment
-        );
+        IERC20(currentLoan.currency).safeTransferFrom(msg.sender, currentLoan.lender, totalRepayment);
 
-        IERC721(currentLoan.nftContract).safeTransferFrom(
-            address(this),
-            currentLoan.borrower,
-            currentLoan.nftTokenId
-        );
+        IERC721(currentLoan.nftContract).safeTransferFrom(address(this), currentLoan.borrower, currentLoan.nftTokenId);
 
         currentLoan.status = LoanStatus.REPAID;
         currentLoan.accruedInterest = interest;
 
-        emit LoanRepaid(
-            loanId,
-            msg.sender,
-            currentLoan.lender,
-            currentLoan.principalAmount,
-            interest
-        );
+        emit LoanRepaid(loanId, msg.sender, currentLoan.lender, currentLoan.principalAmount, interest);
     }
 
     function claimAndRepay(bytes32 loanId) external override nonReentrant {
@@ -354,11 +267,7 @@ contract LendingProtocol is
         require(currentLoan.borrower == msg.sender, "Not borrower");
         require(currentLoan.status == LoanStatus.ACTIVE, "Loan not active");
 
-        address ipId = ipAssetRegistry.ipId(
-            block.chainid,
-            currentLoan.nftContract,
-            currentLoan.nftTokenId
-        );
+        address ipId = ipAssetRegistry.ipId(block.chainid, currentLoan.nftContract, currentLoan.nftTokenId);
         royaltyManager.claimRoyalty(ipId);
 
         uint256 royaltyBalance = royaltyManager.getRoyaltyBalance(ipId);
@@ -371,49 +280,21 @@ contract LendingProtocol is
             // This assumes RoyaltyManager holds the tokens.
             // A pull from RoyaltyManager would be needed here.
             // For now, let's assume direct transfer for simplicity of this example.
-            IERC20(currentLoan.currency).transferFrom(
-                address(royaltyManager),
-                currentLoan.lender,
-                totalRepayment
-            );
+            IERC20(currentLoan.currency).transferFrom(address(royaltyManager), currentLoan.lender, totalRepayment);
             currentLoan.status = LoanStatus.REPAID;
-            emit LoanRepaid(
-                loanId,
-                msg.sender,
-                currentLoan.lender,
-                currentLoan.principalAmount,
-                interest
-            );
+            emit LoanRepaid(loanId, msg.sender, currentLoan.lender, currentLoan.principalAmount, interest);
         } else {
             // Partial repayment
-            IERC20(currentLoan.currency).transferFrom(
-                address(royaltyManager),
-                currentLoan.lender,
-                royaltyBalance
-            );
+            IERC20(currentLoan.currency).transferFrom(address(royaltyManager), currentLoan.lender, royaltyBalance);
             currentLoan.principalAmount -= royaltyBalance; // Reduce principal
             // Borrower pays the rest
             uint256 remainingRepayment = totalRepayment - royaltyBalance;
-            IERC20(currentLoan.currency).safeTransferFrom(
-                msg.sender,
-                currentLoan.lender,
-                remainingRepayment
-            );
+            IERC20(currentLoan.currency).safeTransferFrom(msg.sender, currentLoan.lender, remainingRepayment);
             currentLoan.status = LoanStatus.REPAID;
-            emit LoanRepaid(
-                loanId,
-                msg.sender,
-                currentLoan.lender,
-                totalRepayment,
-                interest
-            );
+            emit LoanRepaid(loanId, msg.sender, currentLoan.lender, totalRepayment, interest);
         }
 
-        IERC721(currentLoan.nftContract).safeTransferFrom(
-            address(this),
-            currentLoan.borrower,
-            currentLoan.nftTokenId
-        );
+        IERC721(currentLoan.nftContract).safeTransferFrom(address(this), currentLoan.borrower, currentLoan.nftTokenId);
     }
 
     // --- Implement missing ILendingProtocol functions as stubs ---
@@ -595,27 +476,16 @@ contract LendingProtocol is
 
     // --- emergency functions ---
 
-    function emergencyWithdrawERC20(
-        address token,
-        address to,
-        uint256 amount
-    ) external onlyOwner {
+    function emergencyWithdrawERC20(address token, address to, uint256 amount) external onlyOwner {
         IERC20(token).safeTransfer(to, amount);
     }
 
-    function emergencyWithdrawERC721(
-        address nftContract,
-        address to,
-        uint256 tokenId
-    ) external onlyOwner {
+    function emergencyWithdrawERC721(address nftContract, address to, uint256 tokenId) external onlyOwner {
         IERC721(nftContract).safeTransferFrom(address(this), to, tokenId);
     }
 
-    function emergencyWithdrawNative(address payable to, uint256 amount)
-        external
-        onlyOwner
-    {
-        (bool success, ) = to.call{value: amount}("");
+    function emergencyWithdrawNative(address payable to, uint256 amount) external onlyOwner {
+        (bool success,) = to.call{value: amount}("");
         require(success, "Transfer failed");
     }
 
@@ -624,35 +494,21 @@ contract LendingProtocol is
 
     // --- Collateral Sale Functions ---
 
-    function listCollateralForSale(
-        bytes32 loanId,
-        uint256 price
-    ) external override nonReentrant {
+    function listCollateralForSale(bytes32 loanId, uint256 price) external override nonReentrant {
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
         require(msg.sender == loan.borrower, "Only borrower can list");
-        emit CollateralListedForSale(
-            loanId,
-            msg.sender,
-            loan.nftContract,
-            loan.nftTokenId,
-            price
-        );
+        emit CollateralListedForSale(loanId, msg.sender, loan.nftContract, loan.nftTokenId, price);
     }
 
-    function cancelCollateralSale(
-        bytes32 loanId
-    ) external override nonReentrant {
+    function cancelCollateralSale(bytes32 loanId) external override nonReentrant {
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
         require(msg.sender == loan.borrower, "Only borrower can cancel");
         emit CollateralSaleCancelled(loanId, msg.sender);
     }
 
-    function buyCollateralAndRepay(
-        bytes32 loanId,
-        uint256 salePrice
-    ) external override nonReentrant {
+    function buyCollateralAndRepay(bytes32 loanId, uint256 salePrice) external override nonReentrant {
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
         // In a real implementation, check that collateral is listed, price matches, etc.
@@ -672,22 +528,14 @@ contract LendingProtocol is
         loan.status = LoanStatus.REPAID;
         loan.accruedInterest = interest;
 
-        emit CollateralSoldAndRepaid(
-            loanId,
-            msg.sender,
-            loan.nftContract,
-            loan.nftTokenId,
-            salePrice,
-            totalRepayment
-        );
+        emit CollateralSoldAndRepaid(loanId, msg.sender, loan.nftContract, loan.nftTokenId, salePrice, totalRepayment);
     }
 
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override returns (bytes4) {
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
+        external
+        override
+        returns (bytes4)
+    {
         return this.onERC721Received.selector;
     }
 }

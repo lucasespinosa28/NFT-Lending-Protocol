@@ -15,6 +15,6 @@ interface IStoryProtocolAccess {
      */
     struct StoryProtocolAddresses {
         address ipAssetRegistry; // To resolve NFT to storyIpId and verify IP registration
-        address royaltyModule;   // To find IpRoyaltyVault for a storyIpId
+        address royaltyModule; // To find IpRoyaltyVault for a storyIpId
     }
 }

@@ -9,7 +9,11 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
 
     // --- IIPAssetRegistry Functions ---
 
-    function register(uint256 chainId, address tokenContract, uint256 tokenId) external override returns (address ipId) {
+    function register(uint256 chainId, address tokenContract, uint256 tokenId)
+        external
+        override
+        returns (address ipId)
+    {
         ipId = computeIpId(chainId, tokenContract, tokenId);
         _isRegistered[ipId] = true;
         ipAssets[chainId][tokenContract][tokenId] = ipId;
@@ -27,7 +31,7 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
         return _isRegistered[id];
     }
 
-    function setRegistrationFee(address /*treasury*/, address /*feeToken*/, uint96 /*feeAmount*/) external override {
+    function setRegistrationFee(address, /*treasury*/ address, /*feeToken*/ uint96 /*feeAmount*/ ) external override {
         // Emit RegistrationFeeSet event (optional)
     }
 
@@ -35,7 +39,7 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
         return 0; // Mocked value
     }
 
-    function upgradeIPAccountImpl(address /*newIpAccountImpl*/) external override {
+    function upgradeIPAccountImpl(address /*newIpAccountImpl*/ ) external override {
         // Mocked
     }
 
@@ -53,7 +57,12 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
 
     // --- IIPAccountRegistry Functions (inherited by IIPAssetRegistry) ---
 
-    function ipAccount(uint256 /*chainId*/, address /*tokenContract*/, uint256 /*tokenId*/) external view override returns (address) {
+    function ipAccount(uint256, /*chainId*/ address, /*tokenContract*/ uint256 /*tokenId*/ )
+        external
+        view
+        override
+        returns (address)
+    {
         return address(0); // Mocked value, could be a mock IPAccount if needed
     }
 
