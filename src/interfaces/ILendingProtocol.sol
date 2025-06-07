@@ -78,6 +78,30 @@ interface ILendingProtocol {
     }
 
     /**
+     * @notice Struct representing a renegotiation proposal for a loan.
+     * @param proposalId Unique identifier for the proposal.
+     * @param loanId The ID of the loan being renegotiated.
+     * @param proposer The address of the lender proposing new terms.
+     * @param borrower The address of the borrower.
+     * @param proposedPrincipalAmount The new proposed principal.
+     * @param proposedInterestRateAPR The new proposed APR.
+     * @param proposedDurationSeconds The new proposed duration.
+     * @param accepted True if the proposal has been accepted.
+     * @param exists True if the proposal exists.
+     */
+    struct RenegotiationProposal {
+        bytes32 proposalId;
+        bytes32 loanId;
+        address proposer;
+        address borrower;
+        uint256 proposedPrincipalAmount;
+        uint256 proposedInterestRateAPR;
+        uint256 proposedDurationSeconds;
+        bool accepted;
+        bool exists;
+    }
+
+    /**
      * @notice Struct representing an active or historical loan.
      * @dev Contains all parameters and state for a loan.
      */
@@ -262,6 +286,26 @@ interface ILendingProtocol {
         uint256 nftTokenId,
         uint256 salePrice,
         uint256 amountToRepayLoan
+    );
+
+    /**
+     * @notice Emitted when a renegotiation proposal is made.
+     * @param proposalId The unique identifier for the proposal.
+     * @param loanId The ID of the loan being renegotiated.
+     * @param proposer The address of the lender proposing new terms.
+     * @param borrower The address of the borrower.
+     * @param proposedPrincipalAmount The new proposed principal.
+     * @param proposedInterestRateAPR The new proposed APR.
+     * @param proposedDurationSeconds The new proposed duration.
+     */
+    event RenegotiationProposalMade(
+        bytes32 indexed proposalId,
+        bytes32 indexed loanId,
+        address indexed proposer,
+        address borrower,
+        uint256 proposedPrincipalAmount,
+        uint256 proposedInterestRateAPR,
+        uint256 proposedDurationSeconds
     );
 
     // --- Functions ---
