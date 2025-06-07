@@ -414,7 +414,7 @@ contract LendingProtocolTest is Test {
         assertEq(loan.borrower, borrower);
         assertEq(loan.lender, lender);
         assertEq(loan.nftContract, address(mockNft)); // Assuming effective collateral is the base NFT
-        assertEq(loan.status, ILendingProtocol.LoanStatus.ACTIVE);
+        assertEq(uint256(loan.status), uint256(ILendingProtocol.LoanStatus.ACTIVE));
     }
 
     function test_ClaimAndRepay_StoryAsset_FullRepaymentByRoyalty() public {

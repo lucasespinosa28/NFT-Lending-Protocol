@@ -12,14 +12,14 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
     function register(uint256 chainId, address tokenContract, uint256 tokenId)
         external
         override
-        returns (address ipId)
+        returns (address _ipId)
     {
-        ipId = computeIpId(chainId, tokenContract, tokenId);
-        _isRegistered[ipId] = true;
-        ipAssets[chainId][tokenContract][tokenId] = ipId;
+        _ipId = computeIpId(chainId, tokenContract, tokenId);
+        _isRegistered[_ipId] = true;
+        ipAssets[chainId][tokenContract][tokenId] = _ipId;
         // Emit IPRegistered event (optional for mock, but good practice)
-        emit IPRegistered(ipId, chainId, tokenContract, tokenId, "MockNFT", "", block.timestamp);
-        return ipId;
+        emit IPRegistered(_ipId, chainId, tokenContract, tokenId, "MockNFT", "", block.timestamp);
+        return _ipId;
     }
 
     function ipId(uint256 chainId, address tokenContract, uint256 tokenId) external view override returns (address) {
