@@ -49,7 +49,10 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
         return ipaRoyaltyClaims[ipId][currencyToken];
     }
 
-    function withdrawRoyalty(address ipId, address currencyToken, address recipient, uint256 amount) external override {
+    function withdrawRoyalty(address ipId, address currencyToken, address recipient, uint256 amount)
+        external
+        override
+    {
         require(ipId != address(0), "RM: IP ID cannot be zero address");
         require(currencyToken != address(0), "RM: Currency token cannot be zero address");
         require(recipient != address(0), "RM: Recipient cannot be zero address");

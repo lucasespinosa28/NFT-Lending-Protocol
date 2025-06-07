@@ -28,12 +28,14 @@ contract CurrencyManagerTest is Test {
         // Admin (this contract) calls addSupportedCurrency
         currencyManager.addSupportedCurrency(address(mockCurrency));
 
-        assertTrue(currencyManager.isCurrencySupported(address(mockCurrency)), "Mock currency should be supported after adding");
+        assertTrue(
+            currencyManager.isCurrencySupported(address(mockCurrency)), "Mock currency should be supported after adding"
+        );
 
         // Verify it's in the list of supported currencies
         address[] memory supportedCurrencies = currencyManager.getSupportedCurrencies();
         bool found = false;
-        for (uint i = 0; i < supportedCurrencies.length; i++) {
+        for (uint256 i = 0; i < supportedCurrencies.length; i++) {
             if (supportedCurrencies[i] == address(mockCurrency)) {
                 found = true;
                 break;
@@ -52,11 +54,15 @@ contract CurrencyManagerTest is Test {
     function test_RemoveSupportedCurrency() public {
         // Add currency first (by admin - this contract)
         currencyManager.addSupportedCurrency(address(mockCurrency));
-        assertTrue(currencyManager.isCurrencySupported(address(mockCurrency)), "Currency should be supported before removal");
+        assertTrue(
+            currencyManager.isCurrencySupported(address(mockCurrency)), "Currency should be supported before removal"
+        );
 
         // Admin (this contract) removes currency
         currencyManager.removeSupportedCurrency(address(mockCurrency));
-        assertFalse(currencyManager.isCurrencySupported(address(mockCurrency)), "Currency should not be supported after removal");
+        assertFalse(
+            currencyManager.isCurrencySupported(address(mockCurrency)), "Currency should not be supported after removal"
+        );
     }
 
     function test_RemoveCurrency_WhenNotAdmin_ShouldFail() public {

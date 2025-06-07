@@ -18,7 +18,7 @@ contract PurchaseBundlerTest is Test {
     // address internal treasury = address(0xDEAD); // PurchaseBundler does not have a treasury field
     address internal user = address(0x1001);
     address internal seller = address(0x1002); // Example seller (borrower) - distinct from user
-    address internal buyer = address(0x1003);  // Example buyer
+    address internal buyer = address(0x1003); // Example buyer
     uint256 internal constant NFT_ID = 1;
 
     function setUp() public {
@@ -33,7 +33,11 @@ contract PurchaseBundlerTest is Test {
 
     function test_InitialState() public {
         assertEq(purchaseBundler.owner(), admin, "Owner not set");
-        assertEq(address(purchaseBundler.lendingProtocol()), address(mockLendingProtocol), "LendingProtocol address incorrect");
+        assertEq(
+            address(purchaseBundler.lendingProtocol()),
+            address(mockLendingProtocol),
+            "LendingProtocol address incorrect"
+        );
         // No treasury function to test
     }
 

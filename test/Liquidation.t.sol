@@ -14,7 +14,6 @@ contract LiquidationTest is Test {
     address internal admin = address(this);
     address internal user = address(0x1001);
 
-
     function setUp() public {
         mockLendingProtocol = new MockLendingProtocol();
         // Constructor: Liquidation(address _lendingProtocolAddress)
@@ -23,7 +22,9 @@ contract LiquidationTest is Test {
 
     function test_InitialState() public {
         assertEq(liquidation.owner(), admin, "Owner not set");
-        assertEq(address(liquidation.lendingProtocol()), address(mockLendingProtocol), "LendingProtocol address incorrect");
+        assertEq(
+            address(liquidation.lendingProtocol()), address(mockLendingProtocol), "LendingProtocol address incorrect"
+        );
         // No treasuryAddress function to test
     }
 

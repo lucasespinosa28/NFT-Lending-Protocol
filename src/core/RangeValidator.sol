@@ -71,7 +71,8 @@ contract RangeValidator is IRangeValidator, Ownable {
         for (uint256 i = 0; i < numberOfRules; i++) {
             // Assuming rule IDs are sequential from 0 to numberOfRules-1
             RangeRule storage rule = collectionRangeRules[collectionAddress][i];
-            if (rule.exists) { // Make sure the rule actually exists
+            if (rule.exists) {
+                // Make sure the rule actually exists
                 if (tokenId >= rule.minTokenId && tokenId <= rule.maxTokenId) {
                     // Token falls within this rule's range. This rule applies.
                     return rule.isAllowed; // The first matching rule determines the outcome.

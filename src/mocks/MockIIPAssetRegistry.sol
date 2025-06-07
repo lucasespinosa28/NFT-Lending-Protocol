@@ -30,15 +30,15 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
     function isRegistered(address id) external view override returns (bool) {
         return _isRegistered[id];
     }
-
+// aderyn-fp-next-line(empty-block)
     function setRegistrationFee(address, /*treasury*/ address, /*feeToken*/ uint96 /*feeAmount*/ ) external override {
         // Emit RegistrationFeeSet event (optional)
     }
-
+// aderyn-fp-next-line(empty-block)
     function totalSupply() external view override returns (uint256) {
         return 0; // Mocked value
     }
-
+// aderyn-fp-next-line(empty-block)
     function upgradeIPAccountImpl(address /*newIpAccountImpl*/ ) external override {
         // Mocked
     }

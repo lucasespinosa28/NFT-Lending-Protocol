@@ -66,7 +66,9 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
         // Check with Story Protocol IIPAssetRegistry
         address retrievedIpId = iipAssetRegistry.ipId(block.chainid, originalContract, originalTokenId);
         if (retrievedIpId != address(0)) {
-            require(!iipAssetRegistry.isRegistered(retrievedIpId), "Stash: Token is already registered with Story Protocol");
+            require(
+                !iipAssetRegistry.isRegistered(retrievedIpId), "Stash: Token is already registered with Story Protocol"
+            );
         }
 
         if (specificOriginalContract != address(0)) {

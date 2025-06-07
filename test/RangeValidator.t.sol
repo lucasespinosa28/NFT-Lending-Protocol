@@ -36,15 +36,30 @@ contract RangeValidatorTest is Test {
         // Assertions will currently fail because isTokenIdValidForCollectionOffer always returns false.
         // These assertions represent the desired behavior once the contract logic is implemented.
         assertTrue(rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), 15), "Token ID 15 should be valid");
-        assertTrue(rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), minTokenId), "Min Token ID 10 should be valid");
-        assertTrue(rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), maxTokenId), "Max Token ID 20 should be valid");
+        assertTrue(
+            rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), minTokenId),
+            "Min Token ID 10 should be valid"
+        );
+        assertTrue(
+            rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), maxTokenId),
+            "Max Token ID 20 should be valid"
+        );
 
-        assertFalse(rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), 5), "Token ID 5 should be invalid (below range)");
-        assertFalse(rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), 25), "Token ID 25 should be invalid (above range)");
+        assertFalse(
+            rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), 5),
+            "Token ID 5 should be invalid (below range)"
+        );
+        assertFalse(
+            rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft), 25),
+            "Token ID 25 should be invalid (above range)"
+        );
 
         // Test for a collection with no rules set (or if default is false)
         ERC721Mock mockNft2 = new ERC721Mock("MockNFT2_For_RangeValidator", "MNFT_RV2");
-        assertFalse(rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft2), 15), "Token ID for unconfigured collection should be invalid");
+        assertFalse(
+            rangeValidator.isTokenIdValidForCollectionOffer(address(mockNft2), 15),
+            "Token ID for unconfigured collection should be invalid"
+        );
     }
 
     function test_SetTokenIdRangeRule_WhenNotAdmin_ShouldFail() public {

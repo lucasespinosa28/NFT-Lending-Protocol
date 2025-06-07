@@ -26,7 +26,6 @@ contract RoyaltyManagerTest is Test {
     address constant DUMMY_LICENSING_MODULE = address(0xdeadbeef01);
     address constant DUMMY_LICENSE_REGISTRY = address(0xdeadbeef02);
 
-
     function setUp() public {
         owner = address(this);
         user = address(0x1);
@@ -40,7 +39,7 @@ contract RoyaltyManagerTest is Test {
             address(mockIpAssetRegistry),
             address(mockRoyaltyModule), // Use mock royalty module address
             DUMMY_LICENSING_MODULE, // Use dummy address
-            DUMMY_LICENSE_REGISTRY  // Use dummy address
+            DUMMY_LICENSE_REGISTRY // Use dummy address
         );
 
         mockNft = new ERC721Mock("TestNFT", "TNFT");
@@ -68,12 +67,22 @@ contract RoyaltyManagerTest is Test {
         emit IRoyaltyManager.RoyaltyClaimed(ipId, collectAmount);
         royaltyManager.claimRoyalty(ipId, address(royaltyToken));
 
-        assertEq(royaltyManager.getRoyaltyBalance(ipId, address(royaltyToken)), collectAmount, "Royalty balance mismatch after claim");
-        assertEq(royaltyToken.balanceOf(address(royaltyManager)), collectAmount, "RoyaltyManager token balance mismatch after claim");
+        assertEq(
+            royaltyManager.getRoyaltyBalance(ipId, address(royaltyToken)),
+            collectAmount,
+            "Royalty balance mismatch after claim"
+        );
+        assertEq(
+            royaltyToken.balanceOf(address(royaltyManager)),
+            collectAmount,
+            "RoyaltyManager token balance mismatch after claim"
+        );
         // Check that MockRoyaltyModule transferred the tokens
         assertEq(mockRoyaltyModule.lastCollector(), address(royaltyManager), "Collector was not RoyaltyManager");
         assertEq(mockRoyaltyModule.lastIpIdCollected(), ipId, "Collected IP ID mismatch");
-        assertEq(mockRoyaltyModule.lastCurrencyTokenCollected(), address(royaltyToken), "Collected currency token mismatch");
+        assertEq(
+            mockRoyaltyModule.lastCurrencyTokenCollected(), address(royaltyToken), "Collected currency token mismatch"
+        );
     }
 
     function test_WithdrawRoyalty_Success() public {
@@ -91,9 +100,21 @@ contract RoyaltyManagerTest is Test {
 
         royaltyManager.withdrawRoyalty(ipId, address(royaltyToken), recipient, withdrawAmount);
 
-        assertEq(royaltyManager.getRoyaltyBalance(ipId, address(royaltyToken)), initialCollectAmount - withdrawAmount, "Balance after withdrawal mismatch");
-        assertEq(royaltyToken.balanceOf(address(royaltyManager)), rmBalanceBefore - withdrawAmount, "RM token balance after withdrawal mismatch");
-        assertEq(royaltyToken.balanceOf(recipient), recipientBalanceBefore + withdrawAmount, "Recipient token balance after withdrawal mismatch");
+        assertEq(
+            royaltyManager.getRoyaltyBalance(ipId, address(royaltyToken)),
+            initialCollectAmount - withdrawAmount,
+            "Balance after withdrawal mismatch"
+        );
+        assertEq(
+            royaltyToken.balanceOf(address(royaltyManager)),
+            rmBalanceBefore - withdrawAmount,
+            "RM token balance after withdrawal mismatch"
+        );
+        assertEq(
+            royaltyToken.balanceOf(recipient),
+            recipientBalanceBefore + withdrawAmount,
+            "Recipient token balance after withdrawal mismatch"
+        );
     }
 
     function test_Fail_WithdrawRoyalty_InsufficientBalance() public {
@@ -113,10 +134,14 @@ contract RoyaltyManagerTest is Test {
 
         // RoyaltyClaimed event should not be emitted if collectedAmount is 0
         // vm.expectNoEmit(); // TODO: Foundry's expectNoEmit might not work as expected for conditional emits.
-                           // A workaround is to check a boolean flag if the event handler has complex logic.
-                           // For this case, the event is only emitted if collectedAmount > 0, so this should be fine.
+        // A workaround is to check a boolean flag if the event handler has complex logic.
+        // For this case, the event is only emitted if collectedAmount > 0, so this should be fine.
         royaltyManager.claimRoyalty(ipId, address(royaltyToken));
-        assertEq(royaltyManager.getRoyaltyBalance(ipId, address(royaltyToken)), 0, "Balance should be 0 when no royalty collected");
+        assertEq(
+            royaltyManager.getRoyaltyBalance(ipId, address(royaltyToken)),
+            0,
+            "Balance should be 0 when no royalty collected"
+        );
         assertEq(royaltyToken.balanceOf(address(royaltyManager)), 0, "RoyaltyManager token balance should be 0");
     }
 }

@@ -4,15 +4,15 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../src/core/VaultsFactory.sol";
 import "../src/core/CollectionManager.sol"; // Needed for setCollectionManager
-import "../src/core/CurrencyManager.sol";   // Needed for setCurrencyManager
-import "../src/mocks/ERC721Mock.sol";      // Added import
-import "../src/mocks/ERC20Mock.sol";       // Added import
+import "../src/core/CurrencyManager.sol"; // Needed for setCurrencyManager
+import "../src/mocks/ERC721Mock.sol"; // Added import
+import "../src/mocks/ERC20Mock.sol"; // Added import
 // May need mock vault implementation if deploying vaults is tested deeply.
 
 contract VaultsFactoryTest is Test {
     VaultsFactory internal vaultsFactory;
-    address internal admin = address(this);     // Deployer, becomes owner of VaultsFactory
-    address internal user = address(0x1001);    // Another user
+    address internal admin = address(this); // Deployer, becomes owner of VaultsFactory
+    address internal user = address(0x1001); // Another user
     ERC721Mock internal mockNft1;
     ERC721Mock internal mockNft2;
 
@@ -113,12 +113,7 @@ contract VaultsFactoryTest is Test {
         // mockNft1.setApprovalForAll(address(vaultsFactory), true); // Approval missing
 
         IVaultsFactory.NFTItem[] memory items = new IVaultsFactory.NFTItem[](1);
-        items[0] = IVaultsFactory.NFTItem({
-            contractAddress: address(mockNft1),
-            tokenId: 1,
-            amount: 1,
-            isERC1155: false
-        });
+        items[0] = IVaultsFactory.NFTItem({contractAddress: address(mockNft1), tokenId: 1, amount: 1, isERC1155: false});
 
         // Expect revert from ERC721: transfer caller is not owner nor approved
         vm.expectRevert(); // This will catch the ERC721 transfer failure

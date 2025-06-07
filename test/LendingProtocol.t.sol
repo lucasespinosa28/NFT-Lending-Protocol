@@ -20,7 +20,6 @@ import {RoyaltyManager} from "../src/core/RoyaltyManager.sol"; // Added import
 import {MockRoyaltyModule} from "../src/mocks/MockRoyaltyModule.sol"; // Added import
 import {MockIIPAssetRegistry} from "../src/mocks/MockIIPAssetRegistry.sol"; // Added import
 
-
 // Mocks
 import {ERC20Mock} from "../src/mocks/ERC20Mock.sol";
 import {ERC721Mock} from "../src/mocks/ERC721Mock.sol";
@@ -103,7 +102,7 @@ contract LendingProtocolTest is Test {
             address(mockIpAssetRegistry),
             address(mockRoyaltyModule),
             address(0xdeadbeef03), // Dummy LICENSING_MODULE for RoyaltyManager
-            address(0xdeadbeef04)  // Dummy LICENSE_REGISTRY for RoyaltyManager
+            address(0xdeadbeef04) // Dummy LICENSE_REGISTRY for RoyaltyManager
         );
 
         lendingProtocol = new LendingProtocol(
@@ -397,7 +396,9 @@ contract LendingProtocolTest is Test {
             durationSeconds: 7 days,
             expirationTimestamp: expiration,
             originationFeeRate: 100,
-            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
+            totalCapacity: 0,
+            maxPrincipalPerLoan: 0,
+            minNumberOfLoans: 0
         });
         bytes32 offerId = lendingProtocol.makeLoanOffer(offerParams);
         vm.stopPrank();
@@ -424,12 +425,22 @@ contract LendingProtocolTest is Test {
         address ipId = mockIpAssetRegistry.ipId(block.chainid, address(mockNft), BORROWER_NFT_ID);
 
         vm.startPrank(lender);
-        bytes32 offerId = lendingProtocol.makeLoanOffer(ILendingProtocol.OfferParams({
-            offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(mockNft), nftTokenId: BORROWER_NFT_ID,
-            currency: address(weth), principalAmount: 1 ether, interestRateAPR: 36500, // 1% per day for easy calculation
-            durationSeconds: 1 days, expirationTimestamp: uint64(block.timestamp + 1 hours), originationFeeRate: 0,
-            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
-        }));
+        bytes32 offerId = lendingProtocol.makeLoanOffer(
+            ILendingProtocol.OfferParams({
+                offerType: ILendingProtocol.OfferType.STANDARD,
+                nftContract: address(mockNft),
+                nftTokenId: BORROWER_NFT_ID,
+                currency: address(weth),
+                principalAmount: 1 ether,
+                interestRateAPR: 36500, // 1% per day for easy calculation
+                durationSeconds: 1 days,
+                expirationTimestamp: uint64(block.timestamp + 1 hours),
+                originationFeeRate: 0,
+                totalCapacity: 0,
+                maxPrincipalPerLoan: 0,
+                minNumberOfLoans: 0
+            })
+        );
         vm.stopPrank();
 
         vm.startPrank(borrower);
@@ -464,7 +475,9 @@ contract LendingProtocolTest is Test {
         assertEq(uint8(loan.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Loan status not REPAID");
         assertEq(weth.balanceOf(lender), lenderWethBefore + totalRepaymentDue, "Lender did not receive full repayment");
         assertEq(mockNft.ownerOf(BORROWER_NFT_ID), borrower, "NFT not returned to borrower");
-        assertEq(royaltyManager.getRoyaltyBalance(ipId, address(weth)), 0, "Royalty balance in RoyaltyManager not cleared");
+        assertEq(
+            royaltyManager.getRoyaltyBalance(ipId, address(weth)), 0, "Royalty balance in RoyaltyManager not cleared"
+        );
     }
 
     function test_ClaimAndRepay_StoryAsset_PartialRepaymentByRoyalty() public {
@@ -474,12 +487,22 @@ contract LendingProtocolTest is Test {
         address ipId = mockIpAssetRegistry.ipId(block.chainid, address(mockNft), BORROWER_NFT_ID);
 
         vm.startPrank(lender);
-        bytes32 offerId = lendingProtocol.makeLoanOffer(ILendingProtocol.OfferParams({
-            offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(mockNft), nftTokenId: BORROWER_NFT_ID,
-            currency: address(weth), principalAmount: 1 ether, interestRateAPR: 36500, durationSeconds: 1 days,
-            expirationTimestamp: uint64(block.timestamp + 1 hours), originationFeeRate: 0,
-            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
-        }));
+        bytes32 offerId = lendingProtocol.makeLoanOffer(
+            ILendingProtocol.OfferParams({
+                offerType: ILendingProtocol.OfferType.STANDARD,
+                nftContract: address(mockNft),
+                nftTokenId: BORROWER_NFT_ID,
+                currency: address(weth),
+                principalAmount: 1 ether,
+                interestRateAPR: 36500,
+                durationSeconds: 1 days,
+                expirationTimestamp: uint64(block.timestamp + 1 hours),
+                originationFeeRate: 0,
+                totalCapacity: 0,
+                maxPrincipalPerLoan: 0,
+                minNumberOfLoans: 0
+            })
+        );
         vm.stopPrank();
 
         vm.startPrank(borrower);
@@ -541,12 +564,22 @@ contract LendingProtocolTest is Test {
         address ipId = mockIpAssetRegistry.ipId(block.chainid, address(mockNft), BORROWER_NFT_ID);
 
         vm.startPrank(lender);
-        bytes32 offerId = lendingProtocol.makeLoanOffer(ILendingProtocol.OfferParams({
-            offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(mockNft), nftTokenId: BORROWER_NFT_ID,
-            currency: address(weth), principalAmount: 1 ether, interestRateAPR: 36500, durationSeconds: 1 days,
-            expirationTimestamp: uint64(block.timestamp + 1 hours), originationFeeRate: 0,
-            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
-        }));
+        bytes32 offerId = lendingProtocol.makeLoanOffer(
+            ILendingProtocol.OfferParams({
+                offerType: ILendingProtocol.OfferType.STANDARD,
+                nftContract: address(mockNft),
+                nftTokenId: BORROWER_NFT_ID,
+                currency: address(weth),
+                principalAmount: 1 ether,
+                interestRateAPR: 36500,
+                durationSeconds: 1 days,
+                expirationTimestamp: uint64(block.timestamp + 1 hours),
+                originationFeeRate: 0,
+                totalCapacity: 0,
+                maxPrincipalPerLoan: 0,
+                minNumberOfLoans: 0
+            })
+        );
         vm.stopPrank();
 
         vm.startPrank(borrower);

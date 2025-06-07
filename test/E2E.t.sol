@@ -27,7 +27,6 @@ contract E2ETests is Test {
     MockIIPAssetRegistry internal mockIpAssetRegistry;
     MockRoyaltyModule internal mockRoyaltyModule;
 
-
     // Mock Tokens
     ERC721Mock internal mockNft;
     ERC20Mock internal weth; // Mock WETH
@@ -63,7 +62,7 @@ contract E2ETests is Test {
             address(mockIpAssetRegistry),
             address(mockRoyaltyModule),
             address(0), // Dummy licensing module
-            address(0)  // Dummy license registry
+            address(0) // Dummy license registry
         );
 
         // VaultsFactory constructor: string memory _name, string memory _symbol
@@ -110,7 +109,6 @@ contract E2ETests is Test {
         weth.mint(lender, 10 ether);
         // Mint WETH for buyer
         weth.mint(buyer, 10 ether);
-
 
         // Initial Approvals
         vm.startPrank(lender);
@@ -165,14 +163,17 @@ contract E2ETests is Test {
         assertEq(mockNft.ownerOf(NFT_ID), address(lendingProtocol), "NFT should be held by LendingProtocol");
 
         uint256 borrowerWethBalanceAfterLoan = weth.balanceOf(borrower);
-        assertEq(borrowerWethBalanceAfterLoan, initialBorrowerWethBalance + LOAN_PRINCIPAL, "Borrower WETH balance should increase by principal");
+        assertEq(
+            borrowerWethBalanceAfterLoan,
+            initialBorrowerWethBalance + LOAN_PRINCIPAL,
+            "Borrower WETH balance should increase by principal"
+        );
 
         ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
         assertEq(uint8(loan.status), uint8(ILendingProtocol.LoanStatus.ACTIVE), "Loan status should be ACTIVE");
         assertEq(loan.principalAmount, LOAN_PRINCIPAL, "Loan principal amount incorrect");
         assertEq(loan.borrower, borrower, "Loan borrower incorrect");
         assertEq(loan.lender, lender, "Loan lender incorrect");
-
 
         // Act (Borrower): Repay the loan
         // Advance time to the due date for interest accrual
@@ -189,7 +190,6 @@ contract E2ETests is Test {
         uint256 lenderWethBalanceBeforeRepay = weth.balanceOf(lender);
         uint256 borrowerWethBalanceBeforeRepay = weth.balanceOf(borrower);
 
-
         vm.startPrank(borrower);
         lendingProtocol.repayLoan(loanId);
         vm.stopPrank();
@@ -205,11 +205,18 @@ contract E2ETests is Test {
         // So, lender's balance before repay was initialLenderWethBalance - LOAN_PRINCIPAL (if no origination fee to lender)
         // After repay, it should be (initialLenderWethBalance - LOAN_PRINCIPAL) + totalRepayment
         // Let's use the balance just before repay for clarity:
-        assertEq(lenderWethBalanceAfterRepay, lenderWethBalanceBeforeRepay + totalRepayment, "Lender WETH balance after repay incorrect");
+        assertEq(
+            lenderWethBalanceAfterRepay,
+            lenderWethBalanceBeforeRepay + totalRepayment,
+            "Lender WETH balance after repay incorrect"
+        );
 
         uint256 borrowerWethBalanceAfterRepay = weth.balanceOf(borrower);
-        assertEq(borrowerWethBalanceAfterRepay, borrowerWethBalanceBeforeRepay - totalRepayment, "Borrower WETH balance after repay incorrect");
-
+        assertEq(
+            borrowerWethBalanceAfterRepay,
+            borrowerWethBalanceBeforeRepay - totalRepayment,
+            "Borrower WETH balance after repay incorrect"
+        );
 
         ILendingProtocol.Loan memory repaidLoan = lendingProtocol.getLoan(loanId);
         assertEq(uint8(repaidLoan.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Loan status should be REPAID");
@@ -248,8 +255,14 @@ contract E2ETests is Test {
 
         // Assert loan is active
         ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
-        assertEq(uint8(loan.status), uint8(ILendingProtocol.LoanStatus.ACTIVE), "Loan status should be ACTIVE initially");
-        assertEq(mockNft.ownerOf(NFT_ID), address(lendingProtocol), "NFT should be held by LendingProtocol during active loan");
+        assertEq(
+            uint8(loan.status), uint8(ILendingProtocol.LoanStatus.ACTIVE), "Loan status should be ACTIVE initially"
+        );
+        assertEq(
+            mockNft.ownerOf(NFT_ID),
+            address(lendingProtocol),
+            "NFT should be held by LendingProtocol during active loan"
+        );
 
         // Act: Advance time past the loan's due time
         // loan.dueTime is already populated correctly by acceptLoanOffer (startTime + durationSeconds)
@@ -265,11 +278,17 @@ contract E2ETests is Test {
 
         // Assert: Post-claim state
         ILendingProtocol.Loan memory defaultedLoan = lendingProtocol.getLoan(loanId); // Re-fetch loan state
-        assertEq(uint8(defaultedLoan.status), uint8(ILendingProtocol.LoanStatus.DEFAULTED), "Loan status should be DEFAULTED");
+        assertEq(
+            uint8(defaultedLoan.status), uint8(ILendingProtocol.LoanStatus.DEFAULTED), "Loan status should be DEFAULTED"
+        );
         assertEq(mockNft.ownerOf(NFT_ID), lender, "NFT (collateral) should be transferred to the lender");
 
         // Verify lender's WETH balance hasn't changed (as they claimed NFT, not WETH)
-        assertEq(weth.balanceOf(lender), lenderWethBalanceBeforeClaim, "Lender WETH balance should not change on collateral claim");
+        assertEq(
+            weth.balanceOf(lender),
+            lenderWethBalanceBeforeClaim,
+            "Lender WETH balance should not change on collateral claim"
+        );
     }
 
     function test_E2E_SellAndRepay() public {
@@ -285,7 +304,9 @@ contract E2ETests is Test {
             durationSeconds: LOAN_DURATION,
             expirationTimestamp: uint64(block.timestamp + 1 hours),
             originationFeeRate: 0,
-            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
+            totalCapacity: 0,
+            maxPrincipalPerLoan: 0,
+            minNumberOfLoans: 0
         });
         bytes32 offerId = lendingProtocol.makeLoanOffer(offerParams);
         vm.stopPrank();
@@ -307,7 +328,6 @@ contract E2ETests is Test {
         uint256 saleTime = loan.startTime + (loanDuration / 2);
         vm.warp(saleTime);
 
-
         // Act (Borrower): List collateral for sale via LendingProtocol
         // This assumes LendingProtocol.listCollateralForSale exists and calls PurchaseBundler.listItem
         // and that PurchaseBundler is designed to allow LendingProtocol (as current NFT owner) to list.
@@ -322,7 +342,6 @@ contract E2ETests is Test {
         // Seller in SaleListing is the original borrower as per PurchaseBundler.listCollateralForSale
         assertEq(listing.seller, borrower, "Listing seller should be the borrower");
         assertTrue(listing.isActive, "Listing should be active");
-
 
         // Act (Buyer): Buy collateral via PurchaseBundler
         uint256 buyerWethBalanceBefore = weth.balanceOf(buyer);
@@ -346,23 +365,34 @@ contract E2ETests is Test {
         assertEq(mockNft.ownerOf(NFT_ID), buyer, "NFT should be transferred to buyer");
 
         uint256 lenderWethBalanceAfter = weth.balanceOf(lender);
-        assertEq(lenderWethBalanceAfter, lenderWethBalanceBefore + totalDebtAtSale, "Lender should receive full repayment");
+        assertEq(
+            lenderWethBalanceAfter, lenderWethBalanceBefore + totalDebtAtSale, "Lender should receive full repayment"
+        );
 
         uint256 borrowerWethBalanceAfter = weth.balanceOf(borrower);
         uint256 expectedSurplus = actualSalePrice - totalDebtAtSale;
-        assertEq(borrowerWethBalanceAfter, borrowerWethBalanceBefore + expectedSurplus, "Borrower should receive surplus");
+        assertEq(
+            borrowerWethBalanceAfter, borrowerWethBalanceBefore + expectedSurplus, "Borrower should receive surplus"
+        );
 
         uint256 buyerWethBalanceAfter = weth.balanceOf(buyer);
-        assertEq(buyerWethBalanceAfter, buyerWethBalanceBefore - actualSalePrice, "Buyer's WETH should decrease by sale price");
+        assertEq(
+            buyerWethBalanceAfter,
+            buyerWethBalanceBefore - actualSalePrice,
+            "Buyer's WETH should decrease by sale price"
+        );
 
         ILendingProtocol.Loan memory finalLoanStatus = lendingProtocol.getLoan(loanId);
-        assertEq(uint8(finalLoanStatus.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Loan status should be REPAID");
+        assertEq(
+            uint8(finalLoanStatus.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Loan status should be REPAID"
+        );
     }
 
     function test_E2E_StoryProtocol_ClaimAndRepay() public {
         // Arrange: Register NFT with MockIIPAssetRegistry to get an ipId
         // Correctly convert keccak256 hash to address
-        address expectedIpId = address(uint160(uint256(keccak256(abi.encodePacked(block.chainid, address(mockNft), NFT_ID)))));
+        address expectedIpId =
+            address(uint160(uint256(keccak256(abi.encodePacked(block.chainid, address(mockNft), NFT_ID)))));
 
         vm.prank(borrower); // Borrower owns the NFT, so should be the one registering it
         mockIpAssetRegistry.register(block.chainid, address(mockNft), NFT_ID); // chainId is arbitrary for mock
@@ -420,15 +450,21 @@ contract E2ETests is Test {
 
         // Assert: Post claimAndRepay state
         uint256 lenderWethBalanceAfter = weth.balanceOf(lender);
-        assertEq(lenderWethBalanceAfter, lenderWethBalanceBefore + totalRepaymentDue, "Lender should receive full repayment from royalties");
+        assertEq(
+            lenderWethBalanceAfter,
+            lenderWethBalanceBefore + totalRepaymentDue,
+            "Lender should receive full repayment from royalties"
+        );
 
         uint256 borrowerWethBalanceAfter = weth.balanceOf(borrower);
         assertEq(borrowerWethBalanceAfter, borrowerWethBalanceBefore, "Borrower's WETH balance should not change");
 
         // Check that the borrower's ETH balance did not decrease significantly (i.e., they didn't pay the loan with ETH)
         // Gas costs might be negligible or handled differently by the test environment for pranked accounts.
-        assertTrue(borrowerEthBalanceBefore - borrower.balance < 0.1 ether, "Borrower ETH balance decreased too much (unexpectedly paid loan with ETH)");
-
+        assertTrue(
+            borrowerEthBalanceBefore - borrower.balance < 0.1 ether,
+            "Borrower ETH balance decreased too much (unexpectedly paid loan with ETH)"
+        );
 
         assertEq(mockNft.ownerOf(NFT_ID), borrower, "NFT should be returned to borrower");
 
@@ -438,6 +474,8 @@ contract E2ETests is Test {
 
         // Verify royalty balance in RoyaltyManager is now zero for the IP
         uint256 remainingRoyaltiesInRM = royaltyManager.getRoyaltyBalance(expectedIpId, address(weth));
-        assertEq(remainingRoyaltiesInRM, 0, "Royalty balance in RoyaltyManager for ipId should be zero after claimAndRepay");
+        assertEq(
+            remainingRoyaltiesInRM, 0, "Royalty balance in RoyaltyManager for ipId should be zero after claimAndRepay"
+        );
     }
 }

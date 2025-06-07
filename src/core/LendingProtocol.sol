@@ -161,17 +161,22 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
             underlyingCollateralContract = offer.nftContract;
             underlyingCollateralTokenId = offer.nftTokenId;
             // Whitelist check for STANDARD offers is typically done at offer creation.
-        } else { // OfferType.COLLECTION or other types that specify NFT at acceptance
+        } else {
+            // OfferType.COLLECTION or other types that specify NFT at acceptance
             underlyingCollateralContract = nftContract; // from function arguments
             underlyingCollateralTokenId = nftTokenId; // from function arguments
-            require(collectionManager.isCollectionWhitelisted(underlyingCollateralContract), "Collection not whitelisted for this offer type");
+            require(
+                collectionManager.isCollectionWhitelisted(underlyingCollateralContract),
+                "Collection not whitelisted for this offer type"
+            );
         }
 
         address loanStoryIpId = address(0);
         bool loanIsStoryAsset = false;
 
         // Check if the underlying asset is registered with Story Protocol
-        address retrievedIpId = ipAssetRegistry.ipId(block.chainid, underlyingCollateralContract, underlyingCollateralTokenId);
+        address retrievedIpId =
+            ipAssetRegistry.ipId(block.chainid, underlyingCollateralContract, underlyingCollateralTokenId);
         if (retrievedIpId != address(0)) {
             // A non-zero address from ipId does not guarantee it is registered AND valid.
             // Explicitly call isRegistered.
@@ -197,13 +202,16 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         // handled by the logic setting underlyingCollateralContract/TokenId, which then feed into effectiveCollateralContract/TokenId.
         // The whitelist check for COLLECTION offers is also handled in the new section.
 
-        if (address(vaultsFactory) != address(0) && vaultsFactory.isVault(effectiveCollateralTokenId)) { // Use effectiveCollateralTokenId
+        if (address(vaultsFactory) != address(0) && vaultsFactory.isVault(effectiveCollateralTokenId)) {
+            // Use effectiveCollateralTokenId
             require(vaultsFactory.ownerOfVault(effectiveCollateralTokenId) == msg.sender, "Not vault owner");
             isCollateralVault = true;
             effectiveCollateralContract = address(vaultsFactory); // Update effectiveCollateralContract
         } else {
             // For non-vault, effectiveCollateralContract is already underlyingCollateralContract
-            require(IERC721(effectiveCollateralContract).ownerOf(effectiveCollateralTokenId) == msg.sender, "Not NFT owner");
+            require(
+                IERC721(effectiveCollateralContract).ownerOf(effectiveCollateralTokenId) == msg.sender, "Not NFT owner"
+            );
         }
 
         IERC721(effectiveCollateralContract).safeTransferFrom(msg.sender, address(this), effectiveCollateralTokenId);
@@ -220,7 +228,7 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
             borrower: msg.sender,
             lender: offer.lender,
             nftContract: effectiveCollateralContract, // Use effective collateral contract
-            nftTokenId: effectiveCollateralTokenId,  // Use effective collateral token ID
+            nftTokenId: effectiveCollateralTokenId, // Use effective collateral token ID
             isVault: isCollateralVault, // Correctly reflects if it's a vault
             currency: offer.currency,
             principalAmount: offer.principalAmount,
@@ -318,30 +326,38 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         uint256 totalRepaymentDue = originalPrincipal + interest;
 
         if (royaltyBalance > 0) {
-            uint256 amountToWithdrawFromRoyalty = royaltyBalance >= totalRepaymentDue ? totalRepaymentDue : royaltyBalance;
+            uint256 amountToWithdrawFromRoyalty =
+                royaltyBalance >= totalRepaymentDue ? totalRepaymentDue : royaltyBalance;
 
             // Withdraw from RoyaltyManager to the lender
-            royaltyManager.withdrawRoyalty(ipIdToUse, currentLoan.currency, currentLoan.lender, amountToWithdrawFromRoyalty);
+            royaltyManager.withdrawRoyalty(
+                ipIdToUse, currentLoan.currency, currentLoan.lender, amountToWithdrawFromRoyalty
+            );
 
-            if (royaltyBalance >= totalRepaymentDue) { // Full repayment via royalty
+            if (royaltyBalance >= totalRepaymentDue) {
+                // Full repayment via royalty
                 // currentLoan.principalAmount remains originalPrincipal, it's fully paid.
                 currentLoan.accruedInterest = interest;
                 currentLoan.status = LoanStatus.REPAID;
                 emit LoanRepaid(loanId, msg.sender, currentLoan.lender, originalPrincipal, interest);
-            } else { // Partial repayment from royalty
+            } else {
+                // Partial repayment from royalty
                 // Reduce principal outstanding on the loan record
                 // The amount paid from royalty directly reduces the principal part of the loan first.
                 currentLoan.principalAmount = originalPrincipal - amountToWithdrawFromRoyalty;
 
                 uint256 remainingRepaymentByBorrower = totalRepaymentDue - amountToWithdrawFromRoyalty;
-                IERC20(currentLoan.currency).safeTransferFrom(msg.sender, currentLoan.lender, remainingRepaymentByBorrower);
+                IERC20(currentLoan.currency).safeTransferFrom(
+                    msg.sender, currentLoan.lender, remainingRepaymentByBorrower
+                );
 
                 currentLoan.accruedInterest = interest; // Total interest due has been covered (part by royalty, part by borrower)
                 currentLoan.status = LoanStatus.REPAID;
                 // Emitting originalPrincipal, as that was the principal at the start of this transaction.
                 emit LoanRepaid(loanId, msg.sender, currentLoan.lender, originalPrincipal, interest);
             }
-        } else { // No royalty balance, borrower pays all
+        } else {
+            // No royalty balance, borrower pays all
             IERC20(currentLoan.currency).safeTransferFrom(msg.sender, currentLoan.lender, totalRepaymentDue);
             currentLoan.accruedInterest = interest;
             currentLoan.status = LoanStatus.REPAID;
