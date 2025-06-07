@@ -65,7 +65,22 @@ contract RangeValidator is IRangeValidator, Ownable {
         // For now, it will likely return false or a default.
         // A real implementation would require a more thought-out storage for ranges.
 
-        return false; // Placeholder: must be implemented correctly
+        // MODIFIED LOGIC STARTS HERE:
+        // 2. Check simple range rules defined in this contract
+        uint256 numberOfRules = collectionRuleCounters[collectionAddress];
+        for (uint256 i = 0; i < numberOfRules; i++) {
+            // Assuming rule IDs are sequential from 0 to numberOfRules-1
+            RangeRule storage rule = collectionRangeRules[collectionAddress][i];
+            if (rule.exists) { // Make sure the rule actually exists
+                if (tokenId >= rule.minTokenId && tokenId <= rule.maxTokenId) {
+                    // Token falls within this rule's range. This rule applies.
+                    return rule.isAllowed; // The first matching rule determines the outcome.
+                }
+            }
+        }
+
+        // Default to false if no rule explicitly covers the token ID.
+        return false;
     }
 
     function setTokenIdRangeRule(address collectionAddress, uint256 minTokenId, uint256 maxTokenId, bool isAllowed)

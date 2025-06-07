@@ -414,7 +414,7 @@ contract LendingProtocolTest is Test {
         assertEq(loan.borrower, borrower);
         assertEq(loan.lender, lender);
         assertEq(loan.nftContract, address(mockNft)); // Assuming effective collateral is the base NFT
-        assertEq(loan.status, ILendingProtocol.LoanStatus.ACTIVE);
+        assertEq(uint256(loan.status), uint256(ILendingProtocol.LoanStatus.ACTIVE));
     }
 
     function test_ClaimAndRepay_StoryAsset_FullRepaymentByRoyalty() public {
@@ -435,6 +435,9 @@ contract LendingProtocolTest is Test {
         vm.startPrank(borrower);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
         vm.stopPrank();
+
+        // Advance time to the due date for interest accrual
+        vm.warp(block.timestamp + 1 days);
 
         // 2. Setup royalty balance in MockRoyaltyModule
         // Calculate expected interest: 1 ether * 36500 APR / 10000 / 365 days * 1 day = 0.01 ether
@@ -482,6 +485,9 @@ contract LendingProtocolTest is Test {
         vm.startPrank(borrower);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
         vm.stopPrank();
+
+        // Advance time to the due date for interest accrual
+        vm.warp(block.timestamp + 1 days);
 
         // 2. Setup partial royalty balance
         uint256 expectedInterest = (1 ether * 36500 * 1) / (365 * 10000); // 0.01 ether
@@ -546,6 +552,9 @@ contract LendingProtocolTest is Test {
         vm.startPrank(borrower);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
         vm.stopPrank();
+
+        // Advance time to the due date for interest accrual
+        vm.warp(block.timestamp + 1 days);
 
         // 2. Setup NO royalty balance
         mockRoyaltyModule.setRoyaltyAmount(ipId, address(weth), 0);

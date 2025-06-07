@@ -62,7 +62,8 @@ interface IPurchaseBundler {
         uint256 nftTokenId,
         bool isVault,
         uint256 price,
-        address currency
+        address currency,
+        address actualSeller // The original borrower initiating the sale through LendingProtocol
     )
         // address specificBuyer // Optional: if only a specific buyer can purchase initially
         external
