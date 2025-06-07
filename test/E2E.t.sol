@@ -32,6 +32,7 @@ contract E2ETests is Test {
     ERC20Mock internal weth; // Mock WETH
 
     // Actors
+     address internal owner = address(0x1);
     address internal lender = address(0x1001);
     address internal borrower = address(0x1002);
     address internal buyer = address(0x1003);
@@ -53,8 +54,8 @@ contract E2ETests is Test {
         mockRoyaltyModule = new MockRoyaltyModule();
 
         // Deploy Core Protocol Contracts
-        // Assuming admin (address(this)) becomes owner by Ownable pattern
-        collectionManager = new CollectionManager(new address[](0));
+        // Use admin (address(this)) as owner for Ownable contracts
+        collectionManager = new CollectionManager(admin, new address[](0));
         currencyManager = new CurrencyManager(new address[](0));
 
         // RoyaltyManager constructor: address ipAssetRegistry, address royaltyModule, address licensingModule, address licenseRegistry

@@ -75,7 +75,8 @@ contract DeployProtocol is Script {
 
         address[] memory initialCollections = new address[](1);
         initialCollections[0] = address(mockNftCollection1);
-        collectionManager = new CollectionManager(initialCollections);
+        address  owner = address(this);
+        collectionManager = new CollectionManager(owner,initialCollections);
         console.log("Deployed CollectionManager at:", address(collectionManager));
 
         rangeValidator = new RangeValidator(); // Basic validator

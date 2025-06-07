@@ -3,16 +3,29 @@ pragma solidity 0.8.26;
 
 /**
  * @title IRangeValidator
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Interface for validating if specific token IDs within certain collections
  * (e.g., Art Blocks) are eligible for collection offers.
- * This is a specialized component.
+ * @dev Allows for range-based and contract-based validation of token IDs.
  */
 interface IRangeValidator {
     // --- Events ---
+
+    /**
+     * @notice Emitted when a range rule is set for a collection.
+     * @param collectionAddress The address of the NFT collection.
+     * @param minTokenId The minimum token ID of the range.
+     * @param maxTokenId The maximum token ID of the range.
+     * @param isAllowed True if tokens in this range are allowed, false if disallowed.
+     */
     event RangeRuleSet(address indexed collectionAddress, uint256 minTokenId, uint256 maxTokenId, bool isAllowed);
-    event CollectionValidatorSet( // A specific contract to validate this collection
-    address indexed collectionAddress, address indexed validatorContract);
+
+    /**
+     * @notice Emitted when a specific validator contract is set for a collection.
+     * @param collectionAddress The address of the NFT collection.
+     * @param validatorContract The address of the validator contract.
+     */
+    event CollectionValidatorSet(address indexed collectionAddress, address indexed validatorContract);
 
     // --- Functions ---
 

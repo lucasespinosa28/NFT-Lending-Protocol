@@ -3,11 +3,10 @@ pragma solidity 0.8.26;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ICurrencyManager} from "../interfaces/ICurrencyManager.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title CurrencyManager
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Manages supported ERC20 currencies for loans.
  * @dev Implements ICurrencyManager. This is a placeholder implementation.
  */
@@ -15,20 +14,35 @@ contract CurrencyManager is ICurrencyManager, Ownable {
     mapping(address => bool) private supportedCurrencies;
     address[] private currencyList;
 
+    /**
+     * @notice Constructor to initialize the contract with an initial set of supported currencies.
+     * @param initialCurrencies Array of ERC20 token addresses to support at deployment.
+     */
     constructor(address[] memory initialCurrencies) Ownable(msg.sender) {
         for (uint256 i = 0; i < initialCurrencies.length; i++) {
             _addSupportedCurrency(initialCurrencies[i]);
         }
     }
 
+    /**
+     * @inheritdoc ICurrencyManager
+     */
     function isCurrencySupported(address tokenAddress) external view override returns (bool) {
         return supportedCurrencies[tokenAddress];
     }
 
+    /**
+     * @inheritdoc ICurrencyManager
+     */
     function addSupportedCurrency(address tokenAddress) external override onlyOwner {
         _addSupportedCurrency(tokenAddress);
     }
 
+    /**
+     * @notice Internal function to add a currency to the supported list.
+     * @dev Checks for zero address, contract code, and duplicate entries.
+     * @param tokenAddress The address of the ERC20 token to add.
+     */
     function _addSupportedCurrency(address tokenAddress) private {
         require(tokenAddress != address(0), "Zero address");
         require(!supportedCurrencies[tokenAddress], "Currency already supported");
@@ -51,6 +65,9 @@ contract CurrencyManager is ICurrencyManager, Ownable {
         emit CurrencyAdded(tokenAddress);
     }
 
+    /**
+     * @inheritdoc ICurrencyManager
+     */
     function removeSupportedCurrency(address tokenAddress) external override onlyOwner {
         require(tokenAddress != address(0), "Zero address");
         require(supportedCurrencies[tokenAddress], "Currency not supported");
@@ -68,6 +85,9 @@ contract CurrencyManager is ICurrencyManager, Ownable {
         emit CurrencyRemoved(tokenAddress);
     }
 
+    /**
+     * @inheritdoc ICurrencyManager
+     */
     function getSupportedCurrencies() external view override returns (address[] memory) {
         return currencyList;
     }

@@ -18,6 +18,12 @@ import {IPurchaseBundler} from "../interfaces/IPurchaseBundler.sol";
 import {IRoyaltyManager} from "../interfaces/IRoyaltyManager.sol";
 import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/IIPAssetRegistry.sol";
 
+/**
+ * @title LendingProtocol
+ * @author Lucas Espinosa
+ * @notice Core contract for NFT lending protocol, managing loan offers, acceptance, repayment, refinancing, and collateral claims.
+ * @dev Implements ILendingProtocol and interacts with managers and external modules.
+ */
 contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for IERC20;
 
@@ -37,6 +43,18 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
     uint256 private loanCounter;
     uint256 private renegotiationProposalCounter;
 
+    /**
+     * @notice Struct representing a renegotiation proposal for a loan.
+     * @param proposalId Unique identifier for the proposal.
+     * @param loanId The ID of the loan being renegotiated.
+     * @param proposer The address of the lender proposing new terms.
+     * @param borrower The address of the borrower.
+     * @param proposedPrincipalAmount The new proposed principal.
+     * @param proposedInterestRateAPR The new proposed APR.
+     * @param proposedDurationSeconds The new proposed duration.
+     * @param accepted True if the proposal has been accepted.
+     * @param exists True if the proposal exists.
+     */
     struct RenegotiationProposal {
         bytes32 proposalId;
         bytes32 loanId;
@@ -49,16 +67,34 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         bool exists;
     }
 
+    /**
+     * @notice Modifier to restrict function to the lender of a loan.
+     * @param loanId The ID of the loan.
+     */
     modifier onlyLender(bytes32 loanId) {
         require(loans[loanId].lender == msg.sender, "Not lender");
         _;
     }
 
+    /**
+     * @notice Modifier to restrict function to the borrower of a loan.
+     * @param loanId The ID of the loan.
+     */
     modifier onlyBorrower(bytes32 loanId) {
         require(loans[loanId].borrower == msg.sender, "Not borrower");
         _;
     }
 
+    /**
+     * @notice Contract constructor to initialize protocol dependencies.
+     * @param _currencyManager Address of the CurrencyManager contract.
+     * @param _collectionManager Address of the CollectionManager contract.
+     * @param _vaultsFactory Address of the VaultsFactory contract.
+     * @param _liquidationContract Address of the Liquidation contract.
+     * @param _purchaseBundler Address of the PurchaseBundler contract.
+     * @param _royaltyManager Address of the RoyaltyManager contract.
+     * @param _ipAssetRegistry Address of the Story Protocol IPAssetRegistry contract.
+     */
     constructor(
         address _currencyManager,
         address _collectionManager,
@@ -86,6 +122,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         ipAssetRegistry = IIPAssetRegistry(_ipAssetRegistry);
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function makeLoanOffer(OfferParams calldata params) external override nonReentrant returns (bytes32 offerId) {
         require(currencyManager.isCurrencySupported(params.currency), "Currency not supported");
         require(params.principalAmount > 0, "Principal must be > 0");
@@ -142,6 +181,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         return offerId;
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function acceptLoanOffer(bytes32 offerId, address nftContract, uint256 nftTokenId)
         external
         override
@@ -263,6 +305,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         return loanId;
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function cancelLoanOffer(bytes32 offerId) external override nonReentrant {
         LoanOffer storage offer = loanOffers[offerId];
         require(offer.lender == msg.sender, "Not offer owner");
@@ -273,6 +318,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         emit OfferCancelled(offerId, msg.sender);
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function calculateInterest(bytes32 loanId) public view override returns (uint256) {
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
@@ -285,6 +333,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         return interest;
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function repayLoan(bytes32 loanId) external override nonReentrant {
         Loan storage currentLoan = loans[loanId];
         require(currentLoan.borrower == msg.sender, "Not borrower");
@@ -304,6 +355,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         emit LoanRepaid(loanId, msg.sender, currentLoan.lender, currentLoan.principalAmount, interest);
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function claimAndRepay(bytes32 loanId) external override nonReentrant {
         Loan storage currentLoan = loans[loanId];
         require(currentLoan.borrower == msg.sender, "Not borrower");
@@ -368,8 +422,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         IERC721(currentLoan.nftContract).safeTransferFrom(address(this), currentLoan.borrower, currentLoan.nftTokenId);
     }
 
-    // --- Implement missing ILendingProtocol functions as stubs ---
-
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function refinanceLoan(
         bytes32 existingLoanId,
         uint256 newPrincipalAmount,
@@ -428,6 +483,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         );
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function proposeRenegotiation(
         bytes32 loanId,
         uint256 proposedPrincipalAmount,
@@ -453,6 +511,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         });
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function acceptRenegotiation(bytes32 proposalId) external override nonReentrant {
         RenegotiationProposal storage proposal = renegotiationProposals[proposalId];
         require(proposal.exists, "Proposal does not exist");
@@ -479,6 +540,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         );
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function claimCollateral(bytes32 loanId) external override nonReentrant {
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
@@ -492,81 +556,137 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         emit CollateralClaimed(loanId, loan.lender, loan.nftContract, loan.nftTokenId);
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function getLoan(bytes32 loanId) external view override returns (Loan memory) {
         return loans[loanId];
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function getLoanOffer(bytes32 offerId) external view override returns (LoanOffer memory) {
         return loanOffers[offerId];
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function isLoanRepayable(bytes32 loanId) external view override returns (bool) {
         Loan storage loan = loans[loanId];
         return loan.status == LoanStatus.ACTIVE && block.timestamp <= loan.dueTime;
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function isLoanInDefault(bytes32 loanId) external view override returns (bool) {
         Loan storage loan = loans[loanId];
         return loan.status == LoanStatus.ACTIVE && block.timestamp > loan.dueTime;
     }
 
-    // --- admin functions ---
-
+    /**
+     * @notice Sets a new CurrencyManager contract address.
+     * @param newManager The address of the new CurrencyManager.
+     */
     function setCurrencyManager(address newManager) external onlyOwner {
         require(newManager != address(0), "zero address");
         currencyManager = ICurrencyManager(newManager);
     }
 
+    /**
+     * @notice Sets a new CollectionManager contract address.
+     * @param newManager The address of the new CollectionManager.
+     */
     function setCollectionManager(address newManager) external onlyOwner {
         require(newManager != address(0), "zero address");
         collectionManager = ICollectionManager(newManager);
     }
 
+    /**
+     * @notice Sets a new VaultsFactory contract address.
+     * @param newFactory The address of the new VaultsFactory.
+     */
     function setVaultsFactory(address newFactory) external onlyOwner {
         require(newFactory != address(0), "zero address");
         vaultsFactory = IVaultsFactory(newFactory);
     }
 
+    /**
+     * @notice Sets a new Liquidation contract address.
+     * @param newContract The address of the new Liquidation contract.
+     */
     function setLiquidationContract(address newContract) external onlyOwner {
         require(newContract != address(0), "zero address");
         liquidationContract = ILiquidation(newContract);
     }
 
+    /**
+     * @notice Sets a new PurchaseBundler contract address.
+     * @param newBundler The address of the new PurchaseBundler.
+     */
     function setPurchaseBundler(address newBundler) external onlyOwner {
         require(newBundler != address(0), "zero address");
         purchaseBundler = IPurchaseBundler(newBundler);
     }
 
+    /**
+     * @notice Sets a new RoyaltyManager contract address.
+     * @param newManager The address of the new RoyaltyManager.
+     */
     function setRoyaltyManager(address newManager) external onlyOwner {
         require(newManager != address(0), "zero address");
         royaltyManager = IRoyaltyManager(newManager);
     }
 
+    /**
+     * @notice Sets a new IPAssetRegistry contract address.
+     * @param newRegistry The address of the new IPAssetRegistry.
+     */
     function setIpAssetRegistry(address newRegistry) external onlyOwner {
         require(newRegistry != address(0), "zero address");
         ipAssetRegistry = IIPAssetRegistry(newRegistry);
     }
 
-    // --- emergency functions ---
-
+    /**
+     * @notice Emergency function to withdraw ERC20 tokens from the contract.
+     * @param token The address of the ERC20 token.
+     * @param to The recipient address.
+     * @param amount The amount to withdraw.
+     */
     function emergencyWithdrawERC20(address token, address to, uint256 amount) external onlyOwner {
         IERC20(token).safeTransfer(to, amount);
     }
 
+    /**
+     * @notice Emergency function to withdraw ERC721 tokens from the contract.
+     * @param nftContract The address of the NFT contract.
+     * @param to The recipient address.
+     * @param tokenId The token ID to withdraw.
+     */
     function emergencyWithdrawERC721(address nftContract, address to, uint256 tokenId) external onlyOwner {
         IERC721(nftContract).safeTransferFrom(address(this), to, tokenId);
     }
 
+    /**
+     * @notice Emergency function to withdraw native ETH from the contract.
+     * @param to The recipient address.
+     * @param amount The amount to withdraw.
+     */
     function emergencyWithdrawNative(address payable to, uint256 amount) external onlyOwner {
         (bool success,) = to.call{value: amount}("");
         require(success, "Transfer failed");
     }
 
-    // Receive function to allow contract to accept ETH
+    /**
+     * @notice Receive function to allow contract to accept ETH.
+     */
     receive() external payable {}
 
-    // --- Collateral Sale Functions ---
-
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function listCollateralForSale(bytes32 loanId, uint256 price) external override nonReentrant {
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
@@ -597,6 +717,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         emit CollateralListedForSale(loanId, msg.sender, loan.nftContract, loan.nftTokenId, price);
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function cancelCollateralSale(bytes32 loanId) external override nonReentrant {
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
@@ -604,6 +727,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         emit CollateralSaleCancelled(loanId, msg.sender);
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function buyCollateralAndRepay(bytes32 loanId, uint256 salePrice) external override nonReentrant {
         Loan storage loan = loans[loanId];
         require(loan.status == LoanStatus.ACTIVE, "Loan not active");
@@ -627,6 +753,10 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         emit CollateralSoldAndRepaid(loanId, msg.sender, loan.nftContract, loan.nftTokenId, salePrice, totalRepayment);
     }
 
+    /**
+     * @notice Handles receipt of ERC721 tokens.
+     * @dev Required for safeTransferFrom.
+     */
     function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
         external
         override
@@ -635,10 +765,13 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         return this.onERC721Received.selector;
     }
 
+    /**
+     * @inheritdoc ILendingProtocol
+     */
     function recordLoanRepaymentViaSale(bytes32 loanId, uint256 principalRepaid, uint256 interestRepaid)
         external
         override
-        nonReentrant // Good practice, though specific reentrancy vector here needs thought
+        nonReentrant
     {
         // Ensure caller is authorized (e.g., the PurchaseBundler contract)
         // This assumes purchaseBundler is the only one that should call this.

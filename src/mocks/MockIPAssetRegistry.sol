@@ -59,7 +59,12 @@ contract MockIPAssetRegistry is IIPAssetRegistry {
         return _feeAmount;
     }
 
-    function ipAccount(uint256 chainId, address tokenContract, uint256 tokenId) external view override returns (address) {
+    function ipAccount(uint256 chainId, address tokenContract, uint256 tokenId)
+        external
+        view
+        override
+        returns (address)
+    {
         // Mock logic, e.g., same as ipId
         return ipId(chainId, tokenContract, tokenId);
     }

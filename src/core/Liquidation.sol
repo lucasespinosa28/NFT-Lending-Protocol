@@ -11,7 +11,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
  * @title Liquidation
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Manages liquidation of defaulted loan collateral via auctions or buyouts.
  * @dev Implements ILiquidation. This is a placeholder implementation.
  */
@@ -25,6 +25,15 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
 
     uint256 private auctionCounter;
 
+    /**
+     * @notice Struct representing a buyout process for a loan.
+     * @param loanId The ID of the loan.
+     * @param largestLender The address of the largest lender.
+     * @param buyoutPrice The total amount required for buyout.
+     * @param buyoutDeadline The deadline for buyout.
+     * @param isActive True if the buyout is active.
+     * @param completed True if the buyout is completed.
+     */
     struct Buyout {
         bytes32 loanId;
         address largestLender;
@@ -35,11 +44,18 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
     }
 
     // --- Modifiers ---
+    /**
+     * @notice Modifier to restrict function to the LendingProtocol contract.
+     */
     modifier onlyLendingProtocol() {
         require(msg.sender == address(lendingProtocol), "Caller not LendingProtocol");
         _;
     }
 
+    /**
+     * @notice Contract constructor to set the LendingProtocol address.
+     * @param _lendingProtocolAddress The address of the LendingProtocol contract.
+     */
     constructor(address _lendingProtocolAddress) Ownable(msg.sender) {
         // Removed: require(_lendingProtocolAddress != address(0), "Lending protocol zero address");
         // lendingProtocol will be set by setLendingProtocol()
@@ -50,6 +66,9 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
     }
 
     // --- Buyout Logic ---
+    /**
+     * @inheritdoc ILiquidation
+     */
     function initiateBuyout(bytes32 loanId, address largestLender, uint256 buyoutPrice, uint64 buyoutDeadline)
         external
         override
@@ -68,6 +87,9 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         emit BuyoutInitiated(loanId, largestLender, buyoutPrice, buyoutDeadline);
     }
 
+    /**
+     * @inheritdoc ILiquidation
+     */
     function executeBuyout(bytes32 loanId) external payable override nonReentrant {
         require(address(lendingProtocol) != address(0), "LP not set");
         Buyout storage currentBuyout = buyouts[loanId];
@@ -82,11 +104,17 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         emit BuyoutCompleted(loanId, msg.sender, currentBuyout.buyoutPrice);
     }
 
+    /**
+     * @inheritdoc ILiquidation
+     */
     function isBuyoutActive(bytes32 loanId) external view override returns (bool) {
         return buyouts[loanId].isActive && block.timestamp <= buyouts[loanId].buyoutDeadline;
     }
 
     // --- Auction Logic ---
+    /**
+     * @inheritdoc ILiquidation
+     */
     function startAuction(
         bytes32 loanId,
         address nftContract,
@@ -125,6 +153,9 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         return auctionId;
     }
 
+    /**
+     * @inheritdoc ILiquidation
+     */
     function placeBid(bytes32 auctionId, uint256 amount) external payable override nonReentrant {
         Auction storage currentAuction = auctions[auctionId];
         require(currentAuction.status == AuctionStatus.ACTIVE, "Auction not active");
@@ -152,6 +183,9 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         emit BidPlaced(auctionId, msg.sender, amount);
     }
 
+    /**
+     * @inheritdoc ILiquidation
+     */
     function endAuction(bytes32 auctionId) external override nonReentrant {
         Auction storage currentAuction = auctions[auctionId];
         require(currentAuction.status == AuctionStatus.ACTIVE, "Auction not ended or already processed");
@@ -166,6 +200,9 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+     * @inheritdoc ILiquidation
+     */
     function distributeProceeds(bytes32 auctionId) external override nonReentrant {
         Auction storage currentAuction = auctions[auctionId];
         require(currentAuction.status == AuctionStatus.ENDED_SOLD, "Auction not sold or already distributed");
@@ -197,6 +234,9 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         emit ProceedsDistributed(auctionId, totalProceeds);
     }
 
+    /**
+     * @inheritdoc ILiquidation
+     */
     function claimCollateralPostAuction(bytes32 auctionId) external override nonReentrant {
         Auction storage currentAuction = auctions[auctionId];
         require(currentAuction.status == AuctionStatus.ENDED_NO_BIDS, "Auction did not end with no bids");
@@ -206,11 +246,18 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
         currentAuction.status = AuctionStatus.SETTLED;
     }
 
+    /**
+     * @inheritdoc ILiquidation
+     */
     function getAuction(bytes32 auctionId) external view override returns (Auction memory) {
         return auctions[auctionId];
     }
 
     // --- Admin ---
+    /**
+     * @notice Sets the LendingProtocol contract address.
+     * @param _lendingProtocolAddress The address of the LendingProtocol contract.
+     */
     function setLendingProtocol(address _lendingProtocolAddress) external onlyOwner {
         require(_lendingProtocolAddress != address(0), "Lending protocol zero address for setter");
         lendingProtocol = ILendingProtocol(_lendingProtocolAddress);

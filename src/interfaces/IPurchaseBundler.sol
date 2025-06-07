@@ -3,11 +3,16 @@ pragma solidity 0.8.26;
 
 /**
  * @title IPurchaseBundler (or ISellAndRepay)
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Interface for the "Sell & Repay" feature, allowing borrowers to list
  * collateralized NFTs for sale, with proceeds automatically repaying the loan.
+ * @dev Defines events, structs, and functions for collateral sale and loan repayment.
  */
 interface IPurchaseBundler {
+    /**
+     * @notice Struct representing a sale listing for a collateralized NFT.
+     * @dev Contains sale parameters and state.
+     */
     struct SaleListing {
         bytes32 loanId;
         address seller; // Borrower
@@ -21,7 +26,17 @@ interface IPurchaseBundler {
     // address specificBuyer; // If listing is for a specific buyer initially
 
     // --- Events ---
-    event CollateralListedForSale( // Also in ILendingProtocol, consider if needed here or just one place
+
+    /**
+     * @notice Emitted when collateral is listed for sale.
+     * @param loanId The ID of the loan.
+     * @param seller The address of the seller (borrower).
+     * @param nftContract The address of the NFT contract.
+     * @param nftTokenId The token ID of the NFT.
+     * @param price The listing price.
+     * @param currency The currency of the sale.
+     */
+    event CollateralListedForSale(
         bytes32 indexed loanId,
         address indexed seller,
         address indexed nftContract,
@@ -30,9 +45,24 @@ interface IPurchaseBundler {
         address currency
     );
 
+    /**
+     * @notice Emitted when a sale listing is cancelled by the seller.
+     * @param loanId The ID of the loan.
+     * @param seller The address of the seller.
+     */
     event SaleListingCancelled(bytes32 indexed loanId, address indexed seller);
 
-    event CollateralSoldAndRepaid( // Also in ILendingProtocol
+    /**
+     * @notice Emitted when collateral is sold and the loan is repaid.
+     * @param loanId The ID of the loan.
+     * @param buyer The address of the buyer.
+     * @param nftContract The address of the NFT contract.
+     * @param nftTokenId The token ID of the NFT.
+     * @param salePrice The sale price.
+     * @param amountToRepayLoan The amount used to repay the loan.
+     * @param surplusToBorrower The surplus returned to the borrower.
+     */
+    event CollateralSoldAndRepaid(
         bytes32 indexed loanId,
         address indexed buyer,
         address nftContract,
@@ -54,6 +84,7 @@ interface IPurchaseBundler {
      * @param isVault True if the collateral is a vault.
      * @param price The asking price for the NFT, in the loan's currency.
      * @param currency The currency of the loan and sale.
+     * @param actualSeller The original borrower initiating the sale through LendingProtocol.
      * @return listingId A unique ID for this sale listing (can be loanId).
      */
     function listCollateralForSale(
@@ -88,6 +119,18 @@ interface IPurchaseBundler {
     function cancelSaleListing(bytes32 listingId) external;
 
     // --- Getters ---
+
+    /**
+     * @notice Gets the details of a sale listing by its ID.
+     * @param listingId The ID of the sale listing.
+     * @return The SaleListing struct.
+     */
     function getSaleListing(bytes32 listingId) external view returns (SaleListing memory);
-    function getMaximumDebt(bytes32 loanId) external view returns (uint256); // Helper to check listing price
+
+    /**
+     * @notice Gets the maximum debt for a loan (principal + max interest).
+     * @param loanId The ID of the loan.
+     * @return The maximum debt amount.
+     */
+    function getMaximumDebt(bytes32 loanId) external view returns (uint256);
 }

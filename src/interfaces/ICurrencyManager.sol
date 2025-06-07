@@ -3,12 +3,22 @@ pragma solidity 0.8.26;
 
 /**
  * @title ICurrencyManager
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Interface for managing supported ERC20 currencies for loans.
+ * @dev Provides functions to add, remove, and query supported currencies.
  */
 interface ICurrencyManager {
     // --- Events ---
+    /**
+     * @notice Emitted when a new ERC20 token is added as a supported currency.
+     * @param tokenAddress The address of the ERC20 token added.
+     */
     event CurrencyAdded(address indexed tokenAddress);
+
+    /**
+     * @notice Emitted when an ERC20 token is removed from supported currencies.
+     * @param tokenAddress The address of the ERC20 token removed.
+     */
     event CurrencyRemoved(address indexed tokenAddress);
 
     // --- Functions ---

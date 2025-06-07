@@ -14,7 +14,7 @@ contract CollectionManagerTest is Test {
     function setUp() public {
         owner = address(this);
         address[] memory initialCollections = new address[](0);
-        manager = new CollectionManager(initialCollections);
+        manager = new CollectionManager(owner, initialCollections); // Pass owner as first argument
 
         // Deploy mock NFTs
         mockNFT1 = new MockERC721("Mock1", "MK1");
@@ -61,7 +61,12 @@ contract CollectionManagerTest is Test {
     function testOnlyOwnerCanAdd() public {
         address nonOwner = address(0x123);
         vm.prank(nonOwner);
-        vm.expectRevert("UNAUTHORIZED");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                bytes4(keccak256("OwnableUnauthorizedAccount(address)")),
+                nonOwner
+            )
+        );
         manager.addWhitelistedCollection(address(mockNFT1));
     }
 }

@@ -2,21 +2,21 @@
 pragma solidity 0.8.26;
 
 import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
-import {Owned} from "solmate/auth/Owned.sol"; // Keep Solmate's Owned for now unless it also causes issues
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; // Changed to OpenZeppelin
 /**
  * @title CollectionManager
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Manages whitelisted NFT collections for collateral.
  * @dev Implements ICollectionManager. This is a placeholder implementation.
  */
 
-contract CollectionManager is ICollectionManager, Owned, ReentrancyGuard {
+contract CollectionManager is ICollectionManager, Ownable, ReentrancyGuard {
     mapping(address => bool) private whitelistedCollections;
     address[] private collectionList;
     // mapping(address => uint256) public collectionMaxLTVs; // Example for LTV
 
-    constructor(address[] memory initialCollections) Owned(msg.sender) {
+    constructor(address owner,address[] memory initialCollections) Ownable(owner) {
         for (uint256 i = 0; i < initialCollections.length; i++) {
             _addWhitelistedCollection(initialCollections[i]);
         }

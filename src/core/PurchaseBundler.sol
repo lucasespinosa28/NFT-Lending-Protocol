@@ -11,7 +11,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
  * @title PurchaseBundler (SellAndRepay)
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Facilitates selling collateralized NFTs to repay loans.
  * @dev Implements IPurchaseBundler. This is a placeholder implementation.
  */
@@ -22,16 +22,27 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
     mapping(bytes32 => SaleListing) public saleListings; // listingId (loanId) => SaleListing
 
     // --- Modifiers ---
+    /**
+     * @notice Modifier to restrict function to the LendingProtocol contract.
+     */
     modifier onlyLendingProtocol() {
         require(msg.sender == address(lendingProtocol), "Caller not LendingProtocol");
         _;
     }
 
+    /**
+     * @notice Modifier to restrict function to the seller of a listing.
+     * @param listingId The ID of the sale listing.
+     */
     modifier onlySeller(bytes32 listingId) {
         require(saleListings[listingId].seller == msg.sender, "Not seller");
         _;
     }
 
+    /**
+     * @notice Contract constructor to set the LendingProtocol address.
+     * @param _lendingProtocolAddress The address of the LendingProtocol contract.
+     */
     constructor(address _lendingProtocolAddress) Ownable(msg.sender) {
         // Removed: require(_lendingProtocolAddress != address(0), "Lending protocol zero address");
         // lendingProtocol will be set by setLendingProtocol()
@@ -41,6 +52,9 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+     * @inheritdoc IPurchaseBundler
+     */
     function listCollateralForSale(
         bytes32 loanId,
         address nftContract,
@@ -81,6 +95,9 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         return listingId;
     }
 
+    /**
+     * @inheritdoc IPurchaseBundler
+     */
     function buyListedCollateral(bytes32 listingId, uint256 paymentAmount) external payable override nonReentrant {
         require(address(lendingProtocol) != address(0), "LP not set");
         SaleListing storage listing = saleListings[listingId];
@@ -131,6 +148,9 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         );
     }
 
+    /**
+     * @inheritdoc IPurchaseBundler
+     */
     function cancelSaleListing(bytes32 listingId) external override onlySeller(listingId) nonReentrant {
         SaleListing storage listing = saleListings[listingId];
         require(listing.isActive, "Listing not active");
@@ -140,10 +160,16 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         emit SaleListingCancelled(listingId, msg.sender);
     }
 
+    /**
+     * @inheritdoc IPurchaseBundler
+     */
     function getSaleListing(bytes32 listingId) external view override returns (SaleListing memory) {
         return saleListings[listingId];
     }
 
+    /**
+     * @inheritdoc IPurchaseBundler
+     */
     function getMaximumDebt(bytes32 loanId) public view override returns (uint256) {
         require(address(lendingProtocol) != address(0), "LP not set");
         ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
@@ -155,7 +181,10 @@ contract PurchaseBundler is IPurchaseBundler, Ownable, ReentrancyGuard {
         return loan.principalAmount + maxInterest;
     }
 
-    // --- Admin ---
+    /**
+     * @notice Sets the LendingProtocol contract address.
+     * @param _lendingProtocolAddress The address of the LendingProtocol contract.
+     */
     function setLendingProtocol(address _lendingProtocolAddress) external onlyOwner {
         require(_lendingProtocolAddress != address(0), "Lending protocol zero address for setter");
         lendingProtocol = ILendingProtocol(_lendingProtocolAddress);

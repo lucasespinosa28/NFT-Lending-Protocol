@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 /**
  * @title IStoryProtocolAccess
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Interface defining structures for interacting with Story Protocol.
  * This helps the lending protocol locate necessary Story Protocol contracts.
  */

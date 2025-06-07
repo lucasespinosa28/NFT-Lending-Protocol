@@ -3,13 +3,24 @@ pragma solidity 0.8.26;
 
 /**
  * @title ICollectionManager
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Interface for managing whitelisted NFT collections eligible for collateral.
+ * @dev Provides functions to whitelist, remove, and query NFT collections.
  */
 interface ICollectionManager {
     // --- Events ---
+    /**
+     * @notice Emitted when a collection is added to the whitelist.
+     * @param collectionAddress The address of the NFT collection contract.
+     */
     event CollectionWhitelisted(address indexed collectionAddress);
+
+    /**
+     * @notice Emitted when a collection is removed from the whitelist.
+     * @param collectionAddress The address of the NFT collection contract.
+     */
     event CollectionRemoved(address indexed collectionAddress);
+
     // Optional: Event for specific collection parameters if any (e.g., LTV ratios)
     // event CollectionParametersSet(address indexed collectionAddress, uint256 maxLTV);
 

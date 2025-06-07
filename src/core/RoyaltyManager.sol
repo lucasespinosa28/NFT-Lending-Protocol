@@ -11,14 +11,33 @@ import {IRoyaltyManager} from "../interfaces/IRoyaltyManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockRoyaltyModule} from "../mocks/MockRoyaltyModule.sol"; // Added import
 
+/**
+ * @title RoyaltyManager
+ * @author Lucas Espinosa
+ * @notice Manages and claims royalties for IP assets using Story Protocol modules.
+ * @dev Implements IRoyaltyManager. Uses a mock for collectRoyaltyTokens.
+ */
 contract RoyaltyManager is IRoyaltyManager, Ownable {
+    /// @notice Story Protocol IP asset registry contract
     IIPAssetRegistry public immutable IP_ASSET_REGISTRY;
+    /// @notice Story Protocol royalty module contract
     IRoyaltyModule public immutable ROYALTY_MODULE;
+    /// @notice Story Protocol licensing module contract
     ILicensingModule public immutable LICENSING_MODULE;
+    /// @notice Story Protocol license registry contract
     ILicenseRegistry public immutable LICENSE_REGISTRY;
 
-    mapping(address => mapping(address => uint256)) public ipaRoyaltyClaims; // ipId => currencyToken => balanceHeldByRoyaltyManager
+    /// @notice Tracks royalty balances held by this contract for each IP asset and currency.
+    /// @dev Mapping: ipId => currencyToken => balance
+    mapping(address => mapping(address => uint256)) public ipaRoyaltyClaims;
 
+    /**
+     * @notice Initializes the RoyaltyManager with Story Protocol module addresses.
+     * @param ipAssetRegistry Address of the IPAssetRegistry contract.
+     * @param royaltyModule Address of the RoyaltyModule contract.
+     * @param licensingModule Address of the LicensingModule contract.
+     * @param licenseRegistry Address of the LicenseRegistry contract.
+     */
     constructor(address ipAssetRegistry, address royaltyModule, address licensingModule, address licenseRegistry)
         Ownable(msg.sender)
     {
@@ -28,6 +47,9 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
         LICENSE_REGISTRY = ILicenseRegistry(licenseRegistry);
     }
 
+    /**
+     * @inheritdoc IRoyaltyManager
+     */
     function claimRoyalty(address ipId, address currencyToken) external override {
         require(ipId != address(0), "RM: IP ID cannot be zero address");
         require(currencyToken != address(0), "RM: Currency token cannot be zero address");
@@ -43,12 +65,18 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
         }
     }
 
+    /**
+     * @inheritdoc IRoyaltyManager
+     */
     function getRoyaltyBalance(address ipId, address currencyToken) external view override returns (uint256) {
         require(ipId != address(0), "RM: IP ID cannot be zero address");
         require(currencyToken != address(0), "RM: Currency token cannot be zero address");
         return ipaRoyaltyClaims[ipId][currencyToken];
     }
 
+    /**
+     * @inheritdoc IRoyaltyManager
+     */
     function withdrawRoyalty(address ipId, address currencyToken, address recipient, uint256 amount)
         external
         override

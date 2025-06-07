@@ -12,15 +12,20 @@ import {IVaultsFactory} from "../interfaces/IVaultsFactory.sol";
 
 /**
  * @title VaultsFactory
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Creates and manages ERC721-compliant vaults for bundling NFTs.
  * @dev Each vault is an ERC721 token minted by this factory.
  * This contract will also act as the ERC721 contract for the vaults themselves.
  */
 contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC1155Receiver {
+    /**
+     * @notice Struct representing the content of a vault.
+     * @param items Array of NFT items in the vault.
+     * @param exists True if the vault exists.
+     */
     struct VaultContent {
-        IVaultsFactory.NFTItem[] items; // Qualified NFTItem
-        bool exists; // To check if a vaultId actually has content stored
+        IVaultsFactory.NFTItem[] items;
+        bool exists;
     }
 
     mapping(uint256 => VaultContent) private vaultContents; // vaultId => content
@@ -34,13 +39,17 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
     }
 
     /**
-     * @dev Internal function to check if a token ID has been minted.
-     * Replaces the removed _exists() from older OZ ERC721 versions.
+     * @notice Internal function to check if a token ID has been minted.
+     * @param tokenId The token ID to check.
+     * @return True if minted, false otherwise.
      */
     function _isMinted(uint256 tokenId) internal view returns (bool) {
         return _ownerOf(tokenId) != address(0);
     }
 
+    /**
+     * @inheritdoc IVaultsFactory
+     */
     function mintVault(
         address owner,
         IVaultsFactory.NFTItem[] calldata nftItems // Type comes from interface
@@ -85,6 +94,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         return vaultId;
     }
 
+    /**
+     * @inheritdoc IVaultsFactory
+     */
     function addContentToVault(
         uint256 vaultId,
         IVaultsFactory.NFTItem[] calldata nftItems // Type comes from interface
@@ -116,6 +128,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         emit VaultContentAdded(vaultId, _getNftContracts(nftItems), _getTokenIds(nftItems), _getAmounts(nftItems));
     }
 
+    /**
+     * @inheritdoc IVaultsFactory
+     */
     function removeContentFromVault(
         uint256 vaultId,
         IVaultsFactory.NFTItem[] calldata nftItemsToRemove // Type comes from interface
@@ -168,6 +183,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         );
     }
 
+    /**
+     * @inheritdoc IVaultsFactory
+     */
     function burnVault(uint256 vaultId) external override {
         require(_isMinted(vaultId), "Vault does not exist"); // Use _isMinted
         require(ownerOf(vaultId) == msg.sender, "Not vault owner");
@@ -193,6 +211,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         _burn(vaultId); // Burn the ERC721 vault token
     }
 
+    /**
+     * @inheritdoc IVaultsFactory
+     */
     function getVaultContent(uint256 vaultId) external view override returns (IVaultsFactory.NFTItem[] memory) {
         // Return type from interface
         require(_isMinted(vaultId), "Vault token ID not minted");
@@ -200,11 +221,17 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         return vaultContents[vaultId].items;
     }
 
+    /**
+     * @inheritdoc IVaultsFactory
+     */
     function isVault(uint256 vaultId) external view override returns (bool) {
         // A token ID is a vault if it has been minted by this contract.
         return _isMinted(vaultId);
     }
 
+    /**
+     * @inheritdoc IVaultsFactory
+     */
     function ownerOfVault(uint256 vaultId) external view override returns (address) {
         // Return type from interface
         require(_isMinted(vaultId), "Vault token ID not minted"); // Check if the token has an owner
@@ -212,6 +239,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
     }
 
     // --- IERC721Receiver ---
+    /**
+     * @notice Handles receipt of ERC721 tokens.
+     */
     function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
         external
         override
@@ -221,6 +251,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
     }
 
     // --- IERC1155Receiver ---
+    /**
+     * @notice Handles receipt of a single ERC1155 token type.
+     */
     function onERC1155Received(address operator, address from, uint256 id, uint256 value, bytes calldata data)
         external
         override
@@ -229,6 +262,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         return IERC1155Receiver.onERC1155Received.selector;
     }
 
+    /**
+     * @notice Handles receipt of multiple ERC1155 token types.
+     */
     function onERC1155BatchReceived(
         address operator,
         address from,
@@ -240,7 +276,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
     }
 
     // --- Helpers to extract arrays for events ---
-    // Parameters are IVaultsFactory.NFTItem[] calldata due to usage in overridden functions
+    /**
+     * @notice Helper to extract NFT contract addresses from NFTItem array.
+     */
     function _getNftContracts(IVaultsFactory.NFTItem[] calldata nftItems) private pure returns (address[] memory) {
         address[] memory contracts = new address[](nftItems.length);
         for (uint256 i = 0; i < nftItems.length; i++) {
@@ -249,6 +287,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         return contracts;
     }
 
+    /**
+     * @notice Helper to extract token IDs from NFTItem array.
+     */
     function _getTokenIds(IVaultsFactory.NFTItem[] calldata nftItems) private pure returns (uint256[] memory) {
         uint256[] memory tokenIds = new uint256[](nftItems.length);
         for (uint256 i = 0; i < nftItems.length; i++) {
@@ -257,6 +298,9 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         return tokenIds;
     }
 
+    /**
+     * @notice Helper to extract amounts from NFTItem array.
+     */
     function _getAmounts(IVaultsFactory.NFTItem[] calldata nftItems) private pure returns (uint256[] memory) {
         uint256[] memory amounts = new uint256[](nftItems.length);
         for (uint256 i = 0; i < nftItems.length; i++) {
@@ -265,11 +309,16 @@ contract VaultsFactory is IVaultsFactory, ERC721, Ownable, IERC721Receiver, IERC
         return amounts;
     }
 
-    // Required by OpenZeppelin ERC721
+    /**
+     * @notice Returns the base URI for vault metadata.
+     */
     function _baseURI() internal view override returns (string memory) {
         return "api/vault/"; // Placeholder
     }
 
+    /**
+     * @notice Checks if the contract supports a given interface.
+     */
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, IERC165) returns (bool) {
         return interfaceId == type(IVaultsFactory).interfaceId || interfaceId == type(IERC721Receiver).interfaceId
             || interfaceId == type(IERC1155Receiver).interfaceId || super.supportsInterface(interfaceId);

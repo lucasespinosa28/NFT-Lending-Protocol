@@ -3,13 +3,18 @@ pragma solidity 0.8.26;
 
 /**
  * @title ILendingProtocol
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Interface for the core NFT lending protocol, managing loan offers,
  * acceptance, repayment, refinancing, and collateral claims.
+ * @dev Defines events, structs, and functions for the lending protocol.
  */
 interface ILendingProtocol {
     // --- Structs ---
 
+    /**
+     * @notice Enum representing the status of a loan.
+     * @dev Used to track the lifecycle of a loan.
+     */
     enum LoanStatus {
         PENDING_ACCEPTANCE, // Offer made, not yet accepted
         ACTIVE, // Loan is active
@@ -18,16 +23,21 @@ interface ILendingProtocol {
         AUCTION_PENDING, // Loan defaulted, auction pending (for multi-tranche)
         AUCTION_ACTIVE, // Loan defaulted, auction active
         AUCTION_SETTLED // Loan defaulted, auction settled
-
     }
 
+    /**
+     * @notice Enum representing the type of loan offer.
+     * @dev STANDARD is for a specific NFT, COLLECTION is for any NFT in a collection.
+     */
     enum OfferType {
         STANDARD, // Offer for a specific NFT
         COLLECTION // Offer for any NFT in a collection
-
     }
 
-    // Struct to group parameters for makeLoanOffer to avoid stack too deep errors
+    /**
+     * @notice Struct to group parameters for makeLoanOffer to avoid stack too deep errors.
+     * @dev Used as input for creating a loan offer.
+     */
     struct OfferParams {
         OfferType offerType;
         address nftContract; // For standard offers, the specific NFT contract or collection for collection offers
@@ -44,6 +54,10 @@ interface ILendingProtocol {
         uint256 minNumberOfLoans; // For collection offers: to distribute total capacity
     }
 
+    /**
+     * @notice Struct representing a loan offer.
+     * @dev Contains all parameters and state for a loan offer.
+     */
     struct LoanOffer {
         bytes32 offerId;
         address lender;
@@ -63,6 +77,10 @@ interface ILendingProtocol {
         bool isActive;
     }
 
+    /**
+     * @notice Struct representing an active or historical loan.
+     * @dev Contains all parameters and state for a loan.
+     */
     struct Loan {
         bytes32 loanId;
         bytes32 offerId;
@@ -86,6 +104,19 @@ interface ILendingProtocol {
 
     // --- Events ---
 
+    /**
+     * @notice Emitted when a loan offer is made by a lender.
+     * @param offerId The unique identifier for the offer.
+     * @param lender The address of the lender.
+     * @param offerType The type of offer (STANDARD or COLLECTION).
+     * @param nftContract The address of the NFT contract.
+     * @param nftTokenId The token ID of the NFT (0 for collection offers).
+     * @param currency The address of the ERC20 currency.
+     * @param principalAmount The principal amount offered.
+     * @param interestRateAPR The annual percentage rate offered.
+     * @param durationSeconds The duration of the loan in seconds.
+     * @param expirationTimestamp The timestamp when the offer expires.
+     */
     event OfferMade(
         bytes32 indexed offerId,
         address indexed lender,
@@ -99,6 +130,18 @@ interface ILendingProtocol {
         uint64 expirationTimestamp
     );
 
+    /**
+     * @notice Emitted when a loan offer is accepted by a borrower.
+     * @param loanId The unique identifier for the loan.
+     * @param offerId The unique identifier for the offer.
+     * @param borrower The address of the borrower.
+     * @param lender The address of the lender.
+     * @param nftContract The address of the NFT contract.
+     * @param nftTokenId The token ID of the NFT.
+     * @param currency The address of the ERC20 currency.
+     * @param principalAmount The principal amount borrowed.
+     * @param dueTime The timestamp when the loan is due.
+     */
     event OfferAccepted(
         bytes32 indexed loanId,
         bytes32 indexed offerId,
@@ -111,8 +154,21 @@ interface ILendingProtocol {
         uint64 dueTime
     );
 
+    /**
+     * @notice Emitted when a loan offer is cancelled by the lender.
+     * @param offerId The unique identifier for the offer.
+     * @param lender The address of the lender.
+     */
     event OfferCancelled(bytes32 indexed offerId, address indexed lender);
 
+    /**
+     * @notice Emitted when a loan is repaid.
+     * @param loanId The unique identifier for the loan.
+     * @param borrower The address of the borrower.
+     * @param lender The address of the lender.
+     * @param principalAmount The principal amount repaid.
+     * @param interestPaid The interest amount paid.
+     */
     event LoanRepaid(
         bytes32 indexed loanId,
         address indexed borrower,
@@ -121,6 +177,17 @@ interface ILendingProtocol {
         uint256 interestPaid
     );
 
+    /**
+     * @notice Emitted when a loan is refinanced.
+     * @param oldLoanId The unique identifier for the old loan.
+     * @param newLoanId The unique identifier for the new loan.
+     * @param borrower The address of the borrower.
+     * @param oldLender The address of the old lender.
+     * @param newLender The address of the new lender.
+     * @param principalAmount The new principal amount.
+     * @param newInterestRateAPR The new annual percentage rate.
+     * @param newDueTime The new due timestamp.
+     */
     event LoanRefinanced(
         bytes32 indexed oldLoanId,
         bytes32 indexed newLoanId,
@@ -132,6 +199,15 @@ interface ILendingProtocol {
         uint64 newDueTime
     );
 
+    /**
+     * @notice Emitted when a loan is renegotiated.
+     * @param loanId The unique identifier for the loan.
+     * @param borrower The address of the borrower.
+     * @param lender The address of the lender.
+     * @param newPrincipalAmount The new principal amount.
+     * @param newInterestRateAPR The new annual percentage rate.
+     * @param newDueTime The new due timestamp.
+     */
     event LoanRenegotiated(
         bytes32 indexed loanId,
         address indexed borrower,
@@ -141,15 +217,44 @@ interface ILendingProtocol {
         uint64 newDueTime
     );
 
+    /**
+     * @notice Emitted when collateral is claimed by the lender after default.
+     * @param loanId The unique identifier for the loan.
+     * @param lender The address of the lender.
+     * @param nftContract The address of the NFT contract.
+     * @param nftTokenId The token ID of the NFT.
+     */
     event CollateralClaimed(
         bytes32 indexed loanId, address indexed lender, address indexed nftContract, uint256 nftTokenId
     );
 
+    /**
+     * @notice Emitted when collateral is listed for sale by the borrower.
+     * @param loanId The unique identifier for the loan.
+     * @param seller The address of the seller (borrower).
+     * @param nftContract The address of the NFT contract.
+     * @param nftTokenId The token ID of the NFT.
+     * @param price The listing price.
+     */
     event CollateralListedForSale( // borrower
     bytes32 indexed loanId, address indexed seller, address indexed nftContract, uint256 nftTokenId, uint256 price);
 
+    /**
+     * @notice Emitted when a collateral sale is cancelled by the seller.
+     * @param loanId The unique identifier for the loan.
+     * @param seller The address of the seller.
+     */
     event CollateralSaleCancelled(bytes32 indexed loanId, address indexed seller);
 
+    /**
+     * @notice Emitted when collateral is sold and the loan is repaid.
+     * @param loanId The unique identifier for the loan.
+     * @param buyer The address of the buyer.
+     * @param nftContract The address of the NFT contract.
+     * @param nftTokenId The token ID of the NFT.
+     * @param salePrice The sale price.
+     * @param amountToRepayLoan The amount used to repay the loan.
+     */
     event CollateralSoldAndRepaid(
         bytes32 indexed loanId,
         address indexed buyer,
@@ -160,6 +265,11 @@ interface ILendingProtocol {
     );
 
     // --- Functions ---
+
+    /**
+     * @notice Claims collateral and repays the loan in a single transaction.
+     * @param loanId The unique identifier for the loan.
+     */
     function claimAndRepay(bytes32 loanId) external;
 
     /**
@@ -246,15 +356,62 @@ interface ILendingProtocol {
     function claimCollateral(bytes32 loanId) external;
 
     // --- Collateral Sale Functions ---
+
+    /**
+     * @notice Lists collateral for sale by the borrower.
+     * @param loanId The ID of the loan whose collateral is being listed.
+     * @param price The listing price.
+     */
     function listCollateralForSale(bytes32 loanId, uint256 price) external;
+
+    /**
+     * @notice Cancels a collateral sale listing.
+     * @param loanId The ID of the loan whose collateral sale is being cancelled.
+     */
     function cancelCollateralSale(bytes32 loanId) external;
+
+    /**
+     * @notice Allows a buyer to purchase collateral and repay the loan.
+     * @param loanId The ID of the loan whose collateral is being purchased.
+     * @param salePrice The sale price.
+     */
     function buyCollateralAndRepay(bytes32 loanId, uint256 salePrice) external;
 
     // --- Getters ---
+
+    /**
+     * @notice Gets the details of a loan by its ID.
+     * @param loanId The ID of the loan.
+     * @return The Loan struct.
+     */
     function getLoan(bytes32 loanId) external view returns (Loan memory);
+
+    /**
+     * @notice Gets the details of a loan offer by its ID.
+     * @param offerId The ID of the loan offer.
+     * @return The LoanOffer struct.
+     */
     function getLoanOffer(bytes32 offerId) external view returns (LoanOffer memory);
+
+    /**
+     * @notice Calculates the interest due for a loan.
+     * @param loanId The ID of the loan.
+     * @return interestDue The amount of interest due.
+     */
     function calculateInterest(bytes32 loanId) external view returns (uint256 interestDue);
+
+    /**
+     * @notice Checks if a loan is repayable.
+     * @param loanId The ID of the loan.
+     * @return True if the loan is repayable, false otherwise.
+     */
     function isLoanRepayable(bytes32 loanId) external view returns (bool);
+
+    /**
+     * @notice Checks if a loan is in default.
+     * @param loanId The ID of the loan.
+     * @return True if the loan is in default, false otherwise.
+     */
     function isLoanInDefault(bytes32 loanId) external view returns (bool);
 
     /**

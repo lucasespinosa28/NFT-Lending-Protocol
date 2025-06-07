@@ -82,7 +82,7 @@ contract LendingProtocolTest is Test {
 
         address[] memory initialCollections = new address[](1);
         initialCollections[0] = address(mockNft);
-        collectionManager = new CollectionManager(initialCollections);
+        collectionManager = new CollectionManager(owner,initialCollections);
 
         // 2. Deploy VaultsFactory (optional, can be address(0) if not used initially)
         vaultsFactory = new VaultsFactory("NFT Vault Shares Test", "NVST");

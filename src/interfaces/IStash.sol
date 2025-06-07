@@ -5,7 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
  * @title IStash
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Interface for a wrapper contract (Stash) to make older or non-standard
  * ERC721 tokens compatible with the lending protocol.
  * The Stash contract would itself be an ERC721, minting a new "wrapped" token
@@ -15,12 +15,28 @@ interface IStash is
     IERC721 // The Stash itself is an ERC721
 {
     // --- Events ---
-    event TokenStashed( // Removed indexed from here
-        // The new token ID minted by this Stash contract
-    address indexed originalContract, uint256 originalTokenId, address indexed stasher, uint256 indexed stashTokenId);
 
-    event TokenUnstashed( // The token ID burned by this Stash contract
-    uint256 indexed stashTokenId, address indexed originalContract, uint256 originalTokenId, address indexed unstasher);
+    /**
+     * @notice Emitted when an original NFT is deposited and wrapped.
+     * @param originalContract The address of the original NFT contract.
+     * @param originalTokenId The token ID of the original NFT.
+     * @param stasher The address of the user who deposited the NFT.
+     * @param stashTokenId The token ID of the newly minted wrapped NFT.
+     */
+    event TokenStashed(
+        address indexed originalContract, uint256 originalTokenId, address indexed stasher, uint256 indexed stashTokenId
+    );
+
+    /**
+     * @notice Emitted when a wrapped NFT is burned and the original NFT is returned.
+     * @param stashTokenId The token ID of the wrapped NFT burned.
+     * @param originalContract The address of the original NFT contract.
+     * @param originalTokenId The token ID of the original NFT.
+     * @param unstasher The address of the user who received the original NFT.
+     */
+    event TokenUnstashed(
+        uint256 indexed stashTokenId, address indexed originalContract, uint256 originalTokenId, address indexed unstasher
+    );
 
     // --- Functions ---
 

@@ -11,12 +11,18 @@ import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/I
 
 /**
  * @title Stash
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice A wrapper for specific ERC721 tokens to make them compatible.
  * This Stash contract itself is an ERC721.
  * @dev Implements IStash. This is a placeholder implementation.
  */
 contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
+    /**
+     * @notice Struct holding information about a stashed token.
+     * @param originalContract The address of the original NFT contract.
+     * @param originalTokenId The token ID of the original NFT.
+     * @param isStashed True if the token is currently stashed.
+     */
     struct StashedTokenInfo {
         address originalContract;
         uint256 originalTokenId;
@@ -50,12 +56,16 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
 
     /**
      * @dev Internal function to check if a token ID has been minted by this Stash contract.
-     * Replaces the removed _exists() from older OZ ERC721 versions for this contract's tokens.
+     * @param tokenId The token ID to check.
+     * @return True if minted, false otherwise.
      */
     function _isMinted(uint256 tokenId) internal view returns (bool) {
         return _ownerOf(tokenId) != address(0);
     }
 
+    /**
+     * @inheritdoc IStash
+     */
     function stash(address originalContract, uint256 originalTokenId)
         external
         override
@@ -97,6 +107,9 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
         return stashTokenId;
     }
 
+    /**
+     * @inheritdoc IStash
+     */
     function unstash(uint256 stashTokenId) external override {
         require(_isMinted(stashTokenId), "Stash token does not exist"); // Check if this Stash contract's token exists
         require(ownerOf(stashTokenId) == msg.sender, "Not owner of stash token");
@@ -123,6 +136,9 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
         emit TokenUnstashed(stashTokenId, originalContract, originalTokenId, msg.sender);
     }
 
+    /**
+     * @inheritdoc IStash
+     */
     function getOriginalTokenInfo(uint256 stashTokenId)
         external
         view
@@ -135,6 +151,9 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
         return (info.originalContract, info.originalTokenId, ownerOf(stashTokenId));
     }
 
+    /**
+     * @inheritdoc IStash
+     */
     function isStashed(address originalContract, uint256 originalTokenId)
         external
         view
@@ -151,12 +170,16 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
         return (false, 0);
     }
 
-    // Required by OpenZeppelin ERC721
+    /**
+     * @notice Returns the base URI for stash token metadata.
+     */
     function _baseURI() internal view override returns (string memory) {
         return "api/stash/"; // Placeholder
     }
 
-    // IERC721Receiver (for receiving the original NFTs)
+    /**
+     * @notice Handles receipt of ERC721 tokens.
+     */
     function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
         external
         override
@@ -165,6 +188,9 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
         return IERC721Receiver.onERC721Received.selector;
     }
 
+    /**
+     * @notice Checks if the contract supports a given interface.
+     */
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, IERC165) returns (bool) {
         return interfaceId == type(IStash).interfaceId || interfaceId == type(IERC721Receiver).interfaceId
             || super.supportsInterface(interfaceId);

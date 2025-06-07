@@ -3,26 +3,54 @@ pragma solidity 0.8.26;
 
 /**
  * @title IVaultsFactory
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Interface for creating and managing NFT vaults (bundling multiple NFTs).
  * @dev Vaults themselves would likely be ERC721 tokens.
  */
 interface IVaultsFactory {
     // --- Events ---
-    event VaultCreated( // For ERC1155
-    uint256 indexed vaultId, address indexed owner, address[] nftContracts, uint256[] tokenIds, uint256[] amounts);
-    event VaultContentAdded( // For ERC1155
-    uint256 indexed vaultId, address[] nftContracts, uint256[] tokenIds, uint256[] amounts);
-    event VaultContentRemoved( // For ERC1155
-    uint256 indexed vaultId, address[] nftContracts, uint256[] tokenIds, uint256[] amounts);
-    // Note: Burning a vault to add more NFTs seems counterintuitive.
-    // Usually, you'd add to an existing vault or burn it to retrieve all contents.
-    // The description says "burnVault ... to add more NFTs". This might mean
-    // "unwrap (burn) the old vault, create a new one with the old + new NFTs".
-    // Or it could be a misinterpretation and it means "add to vault".
-    // I'll assume "add to vault" for now. "Burn" usually means destroy.
-    // If "burnVault" truly means destroy to re-bundle, the event might be VaultDestroyedAndRecreated.
 
+    /**
+     * @notice Emitted when a new vault is created.
+     * @param vaultId The ID of the created vault.
+     * @param owner The address of the vault owner.
+     * @param nftContracts The addresses of NFT contracts included in the vault.
+     * @param tokenIds The token IDs of NFTs included in the vault.
+     * @param amounts The amounts of each NFT (1 for ERC721, >1 for ERC1155).
+     */
+    event VaultCreated(
+        uint256 indexed vaultId, address indexed owner, address[] nftContracts, uint256[] tokenIds, uint256[] amounts
+    );
+
+    /**
+     * @notice Emitted when content is added to a vault.
+     * @param vaultId The ID of the vault.
+     * @param nftContracts The addresses of NFT contracts added.
+     * @param tokenIds The token IDs of NFTs added.
+     * @param amounts The amounts of each NFT added.
+     */
+    event VaultContentAdded(
+        uint256 indexed vaultId, address[] nftContracts, uint256[] tokenIds, uint256[] amounts
+    );
+
+    /**
+     * @notice Emitted when content is removed from a vault.
+     * @param vaultId The ID of the vault.
+     * @param nftContracts The addresses of NFT contracts removed.
+     * @param tokenIds The token IDs of NFTs removed.
+     * @param amounts The amounts of each NFT removed.
+     */
+    event VaultContentRemoved(
+        uint256 indexed vaultId, address[] nftContracts, uint256[] tokenIds, uint256[] amounts
+    );
+
+    /**
+     * @notice Struct representing an NFT item to be included in a vault.
+     * @param contractAddress The address of the NFT contract.
+     * @param tokenId The token ID of the NFT.
+     * @param amount The amount (1 for ERC721, >1 for ERC1155).
+     * @param isERC1155 True if the NFT is ERC1155, false if ERC721.
+     */
     struct NFTItem {
         address contractAddress;
         uint256 tokenId;

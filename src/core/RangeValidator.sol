@@ -6,11 +6,18 @@ import {IRangeValidator} from "../interfaces/IRangeValidator.sol";
 
 /**
  * @title RangeValidator
- * @author Your Name/Team
+ * @author Lucas Espinosa
  * @notice Validates token IDs for collection offers, e.g., for Art Blocks.
  * @dev Implements IRangeValidator. This is a placeholder implementation.
  */
 contract RangeValidator is IRangeValidator, Ownable {
+    /**
+     * @notice Struct representing a range rule for token IDs.
+     * @param minTokenId The minimum token ID in the range.
+     * @param maxTokenId The maximum token ID in the range.
+     * @param isAllowed True if tokens in this range are allowed, false if disallowed.
+     * @param exists True if the rule exists.
+     */
     struct RangeRule {
         uint256 minTokenId;
         uint256 maxTokenId;
@@ -27,6 +34,10 @@ contract RangeValidator is IRangeValidator, Ownable {
 
     constructor() Ownable(msg.sender) {}
 
+    /**
+     * @notice Checks if a specific token ID from a given collection is valid for a collection offer.
+     * @inheritdoc IRangeValidator
+     */
     function isTokenIdValidForCollectionOffer(address collectionAddress, uint256 tokenId)
         external
         view
@@ -84,6 +95,10 @@ contract RangeValidator is IRangeValidator, Ownable {
         return false;
     }
 
+    /**
+     * @notice Admin function to set or update validation rules for a collection.
+     * @inheritdoc IRangeValidator
+     */
     function setTokenIdRangeRule(address collectionAddress, uint256 minTokenId, uint256 maxTokenId, bool isAllowed)
         external
         override
@@ -99,6 +114,10 @@ contract RangeValidator is IRangeValidator, Ownable {
         emit RangeRuleSet(collectionAddress, minTokenId, maxTokenId, isAllowed);
     }
 
+    /**
+     * @notice Admin function to set a specific validator contract for a collection.
+     * @inheritdoc IRangeValidator
+     */
     function setCollectionSpecificValidator(
         address collectionAddress,
         address validatorContract // address(0) to remove
