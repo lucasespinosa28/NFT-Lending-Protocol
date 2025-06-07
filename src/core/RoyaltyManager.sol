@@ -16,7 +16,7 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
     ILicensingModule public immutable LICENSING_MODULE;
     ILicenseRegistry public immutable LICENSE_REGISTRY;
 
-    mapping(address => uint256) public ipaRoyaltyClaims;
+    mapping(address => mapping(address => uint256)) public ipaRoyaltyClaims; // ipId => currencyToken => balanceHeldByRoyaltyManager
 
     constructor(address ipAssetRegistry, address royaltyModule, address licensingModule, address licenseRegistry)
         Ownable(msg.sender)
@@ -27,38 +27,40 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
         LICENSE_REGISTRY = ILicenseRegistry(licenseRegistry);
     }
 
-    function claimRoyalty(address ipId) external override {
-        address[] memory parentIpIds = new address[](LICENSE_REGISTRY.getParentIpCount(ipId));
-        for (uint256 i = 0; i < parentIpIds.length; i++) {
-            parentIpIds[i] = LICENSE_REGISTRY.getParentIp(ipId, i);
-        }
+    function claimRoyalty(address ipId, address currencyToken) external override {
+        require(ipId != address(0), "RM: IP ID cannot be zero address");
+        require(currencyToken != address(0), "RM: Currency token cannot be zero address");
 
-        if (parentIpIds.length > 0) {
-            address[] memory royaltyPolicies = new address[](parentIpIds.length);
-            for (uint256 i = 0; i < parentIpIds.length; i++) {
-                (address licenseTemplate, uint256 licenseTermsId) =
-                    LICENSE_REGISTRY.getParentLicenseTerms(ipId, parentIpIds[i]);
-                (address royaltyPolicy,,,) = ILicenseTemplate(licenseTemplate).getRoyaltyPolicy(licenseTermsId);
-                royaltyPolicies[i] = royaltyPolicy;
-            }
+        // Call Story Protocol's RoyaltyModule to collect tokens.
+        // This function transfers the tokens to this contract (RoyaltyManager) and returns the amount.
+        uint256 collectedAmount = ROYALTY_MODULE.collectRoyaltyTokens(ipId, currencyToken);
 
-            address[] memory currencyTokens = new address[](1);
-            currencyTokens[0] = 0xF2104833d386a2734a4eB3B8ad6FC6812F29E38E;
-
-            // --- FIX: No claimRoyalty function exists. Instead, check the royalty vault balance. ---
-            address royaltyVault = ROYALTY_MODULE.ipRoyaltyVaults(ipId);
-            uint256 amount = 0;
-            if (royaltyVault != address(0)) {
-                amount = IERC20(currencyTokens[0]).balanceOf(royaltyVault);
-                // If you want to actually withdraw, you need to implement a withdrawal mechanism.
-            }
-            ipaRoyaltyClaims[ipId] += amount;
-
-            emit RoyaltyClaimed(ipId, amount);
+        if (collectedAmount > 0) {
+            ipaRoyaltyClaims[ipId][currencyToken] += collectedAmount;
+            emit RoyaltyClaimed(ipId, collectedAmount); // Existing event
         }
     }
 
-    function getRoyaltyBalance(address ipId) external view override returns (uint256) {
-        return ipaRoyaltyClaims[ipId];
+    function getRoyaltyBalance(address ipId, address currencyToken) external view override returns (uint256) {
+        require(ipId != address(0), "RM: IP ID cannot be zero address");
+        require(currencyToken != address(0), "RM: Currency token cannot be zero address");
+        return ipaRoyaltyClaims[ipId][currencyToken];
+    }
+
+    function withdrawRoyalty(address ipId, address currencyToken, address recipient, uint256 amount) external override {
+        require(ipId != address(0), "RM: IP ID cannot be zero address");
+        require(currencyToken != address(0), "RM: Currency token cannot be zero address");
+        require(recipient != address(0), "RM: Recipient cannot be zero address");
+        require(amount > 0, "RM: Amount must be greater than zero");
+
+        uint256 currentBalance = ipaRoyaltyClaims[ipId][currencyToken];
+        require(currentBalance >= amount, "RM: Insufficient royalty balance for withdrawal");
+
+        ipaRoyaltyClaims[ipId][currencyToken] = currentBalance - amount;
+
+        // Transfer the ERC20 tokens to the recipient
+        IERC20(currencyToken).transfer(recipient, amount);
+
+        // Consider adding a new event RoyaltyWithdrawn if detailed logging is needed.
     }
 }

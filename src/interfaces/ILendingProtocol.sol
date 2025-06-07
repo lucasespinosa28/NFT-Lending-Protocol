@@ -77,8 +77,11 @@ interface ILendingProtocol {
         uint256 originationFeePaid;
         uint64 startTime;
         uint64 dueTime;
-        uint256 accruedInterest;
-        LoanStatus status;
+        uint256 accruedInterest; // Interest accrued at the point of repayment or default
+        LoanStatus status; // Current status of the loan
+        // --- Story Protocol Integration Fields ---
+        address storyIpId; // Story Protocol IP ID of the underlying asset, if applicable
+        bool isStoryAsset; // True if the underlying collateral is a Story Protocol registered asset
     }
 
     // --- Events ---

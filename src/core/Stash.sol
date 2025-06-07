@@ -7,6 +7,7 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {IStash} from "../interfaces/IStash.sol";
 import {IERC721 as ExternalIERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/IIPAssetRegistry.sol";
 
 /**
  * @title Stash
@@ -34,13 +35,17 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
 
     // Optional: If this stash is for a specific original contract
     address public immutable specificOriginalContract;
+    IIPAssetRegistry public immutable iipAssetRegistry;
 
     constructor(
         string memory name, // Name for the wrapped ERC721 token (e.g., "Stashed CryptoPunk")
         string memory symbol, // Symbol for the wrapped ERC721 token (e.g., "sPUNK")
-        address _specificOriginalContract // address(0) if generic, else the specific contract this wraps
+        address _specificOriginalContract, // address(0) if generic, else the specific contract this wraps
+        address _iipAssetRegistry // New parameter
     ) ERC721(name, symbol) Ownable(msg.sender) {
+        require(_iipAssetRegistry != address(0), "Stash: IIPAssetRegistry zero address");
         specificOriginalContract = _specificOriginalContract;
+        iipAssetRegistry = IIPAssetRegistry(_iipAssetRegistry); // Initialize here
     }
 
     /**
@@ -57,6 +62,13 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
         returns (uint256 stashTokenId)
     {
         require(originalContract != address(0), "Original contract zero address");
+
+        // Check with Story Protocol IIPAssetRegistry
+        address retrievedIpId = iipAssetRegistry.ipId(block.chainid, originalContract, originalTokenId);
+        if (retrievedIpId != address(0)) {
+            require(!iipAssetRegistry.isRegistered(retrievedIpId), "Stash: Token is already registered with Story Protocol");
+        }
+
         if (specificOriginalContract != address(0)) {
             require(originalContract == specificOriginalContract, "Stash: Wrong original contract");
         }
