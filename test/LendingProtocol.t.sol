@@ -16,6 +16,10 @@ import {PurchaseBundler} from "../src/core/PurchaseBundler.sol";
 
 // Interfaces
 import {ILendingProtocol} from "../src/interfaces/ILendingProtocol.sol";
+import {RoyaltyManager} from "../src/core/RoyaltyManager.sol"; // Added import
+import {MockRoyaltyModule} from "../src/mocks/MockRoyaltyModule.sol"; // Added import
+import {MockIIPAssetRegistry} from "../src/mocks/MockIIPAssetRegistry.sol"; // Added import
+
 
 // Mocks
 import {ERC20Mock} from "../src/mocks/ERC20Mock.sol";
@@ -29,6 +33,9 @@ contract LendingProtocolTest is Test {
     VaultsFactory internal vaultsFactory;
     Liquidation internal liquidation;
     PurchaseBundler internal purchaseBundler;
+    RoyaltyManager internal royaltyManager; // Added
+    MockRoyaltyModule internal mockRoyaltyModule; // Added
+    MockIIPAssetRegistry internal mockIpAssetRegistry; // Added
 
     ERC20Mock internal weth;
     ERC20Mock internal usdc;
@@ -87,9 +94,17 @@ contract LendingProtocolTest is Test {
         purchaseBundler = new PurchaseBundler(address(0));
 
         // 4. Deploy LendingProtocol
-        // Add mocks for new dependencies
-        address dummyRoyaltyManager = address(0xdeadbeef01);
-        address dummyIpAssetRegistry = address(0xdeadbeef02);
+        // Deploy new mock dependencies for RoyaltyManager and LendingProtocol
+        mockIpAssetRegistry = new MockIIPAssetRegistry();
+        mockRoyaltyModule = new MockRoyaltyModule();
+
+        // Deploy RoyaltyManager with mocks and dummy addresses for its other dependencies
+        royaltyManager = new RoyaltyManager(
+            address(mockIpAssetRegistry),
+            address(mockRoyaltyModule),
+            address(0xdeadbeef03), // Dummy LICENSING_MODULE for RoyaltyManager
+            address(0xdeadbeef04)  // Dummy LICENSE_REGISTRY for RoyaltyManager
+        );
 
         lendingProtocol = new LendingProtocol(
             address(currencyManager),
@@ -97,8 +112,8 @@ contract LendingProtocolTest is Test {
             address(vaultsFactory),
             address(liquidation),
             address(purchaseBundler),
-            dummyRoyaltyManager,
-            dummyIpAssetRegistry
+            address(royaltyManager), // Use deployed RoyaltyManager
+            address(mockIpAssetRegistry) // Use deployed MockIIPAssetRegistry
         );
 
         // 5. Set LendingProtocol address in Liquidation and PurchaseBundler
@@ -117,6 +132,14 @@ contract LendingProtocolTest is Test {
         vm.startPrank(borrower);
         mockNft.setApprovalForAll(address(lendingProtocol), true); // Or approve specific token ID
         vm.stopPrank();
+
+        // Fund MockRoyaltyModule with WETH for tests that might use it
+        // Mint WETH to the test contract (owner / address(this)) itself for funding the mock module
+        weth.mint(address(this), 200 ether); // Example amount, can be adjusted
+        // Test contract approves MockRoyaltyModule to pull WETH from it
+        weth.approve(address(mockRoyaltyModule), 200 ether);
+        // Fund MockRoyaltyModule with some WETH. Specific amounts for ipIds are set in tests.
+        mockRoyaltyModule.fundModule(address(weth), 100 ether); // Example funding
     }
 
     // --- Test Functions ---
@@ -351,4 +374,204 @@ contract LendingProtocolTest is Test {
     // - test_Fail_ClaimCollateral_NotLender
     // - test_Fail_ClaimCollateral_LoanNotDefaulted
     // - Tests for refinance, renegotiation, collection offers acceptance, etc.
+
+    // --- Story Protocol Integration Tests ---
+
+    function test_AcceptLoanOffer_WithStoryAsset_Success() public {
+        // 1. Register the NFT with Story Protocol mock
+        vm.prank(borrower); // Borrower (or owner) registers their NFT
+        mockIpAssetRegistry.register(block.chainid, address(mockNft), BORROWER_NFT_ID);
+        address expectedIpId = mockIpAssetRegistry.ipId(block.chainid, address(mockNft), BORROWER_NFT_ID);
+        assertTrue(expectedIpId != address(0), "Mock IP ID should not be zero after registration");
+
+        // 2. Lender makes an offer
+        vm.startPrank(lender);
+        uint64 expiration = uint64(block.timestamp + 1 days);
+        ILendingProtocol.OfferParams memory offerParams = ILendingProtocol.OfferParams({
+            offerType: ILendingProtocol.OfferType.STANDARD,
+            nftContract: address(mockNft),
+            nftTokenId: BORROWER_NFT_ID,
+            currency: address(weth),
+            principalAmount: 1 ether,
+            interestRateAPR: 500,
+            durationSeconds: 7 days,
+            expirationTimestamp: expiration,
+            originationFeeRate: 100,
+            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
+        });
+        bytes32 offerId = lendingProtocol.makeLoanOffer(offerParams);
+        vm.stopPrank();
+
+        // 3. Borrower accepts the offer
+        vm.startPrank(borrower);
+        bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
+        vm.stopPrank();
+
+        // 4. Verify loan details, including Story Protocol fields
+        ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
+        assertTrue(loan.isStoryAsset, "Loan should be marked as Story asset");
+        assertEq(loan.storyIpId, expectedIpId, "Loan storyIpId incorrect");
+        assertEq(loan.borrower, borrower);
+        assertEq(loan.lender, lender);
+        assertEq(loan.nftContract, address(mockNft)); // Assuming effective collateral is the base NFT
+        assertEq(loan.status, ILendingProtocol.LoanStatus.ACTIVE);
+    }
+
+    function test_ClaimAndRepay_StoryAsset_FullRepaymentByRoyalty() public {
+        // 1. Register NFT & create loan (similar to test_AcceptLoanOffer_WithStoryAsset_Success)
+        vm.prank(borrower);
+        mockIpAssetRegistry.register(block.chainid, address(mockNft), BORROWER_NFT_ID);
+        address ipId = mockIpAssetRegistry.ipId(block.chainid, address(mockNft), BORROWER_NFT_ID);
+
+        vm.startPrank(lender);
+        bytes32 offerId = lendingProtocol.makeLoanOffer(ILendingProtocol.OfferParams({
+            offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(mockNft), nftTokenId: BORROWER_NFT_ID,
+            currency: address(weth), principalAmount: 1 ether, interestRateAPR: 36500, // 1% per day for easy calculation
+            durationSeconds: 1 days, expirationTimestamp: uint64(block.timestamp + 1 hours), originationFeeRate: 0,
+            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
+        }));
+        vm.stopPrank();
+
+        vm.startPrank(borrower);
+        bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
+        vm.stopPrank();
+
+        // 2. Setup royalty balance in MockRoyaltyModule
+        // Calculate expected interest: 1 ether * 36500 APR / 10000 / 365 days * 1 day = 0.01 ether
+        uint256 expectedInterest = (1 ether * 36500 * 1) / (365 * 10000);
+        uint256 totalRepaymentDue = 1 ether + expectedInterest;
+
+        // Fund MockRoyaltyModule through the test contract (owner)
+        weth.mint(address(this), totalRepaymentDue); // Mint WETH to test contract
+        weth.approve(address(mockRoyaltyModule), totalRepaymentDue); // Approve MockRoyaltyModule to pull
+        mockRoyaltyModule.fundModule(address(weth), totalRepaymentDue); // Fund module
+        mockRoyaltyModule.setRoyaltyAmount(ipId, address(weth), totalRepaymentDue); // Set amount for collection
+
+        // 3. Borrower calls claimAndRepay
+        vm.startPrank(borrower);
+        uint256 lenderWethBefore = weth.balanceOf(lender);
+        vm.expectEmit(true, true, true, true, address(lendingProtocol));
+        emit ILendingProtocol.LoanRepaid(loanId, borrower, lender, 1 ether, expectedInterest);
+
+        lendingProtocol.claimAndRepay(loanId);
+        vm.stopPrank();
+
+        // 4. Verify state
+        ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
+        assertEq(uint8(loan.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Loan status not REPAID");
+        assertEq(weth.balanceOf(lender), lenderWethBefore + totalRepaymentDue, "Lender did not receive full repayment");
+        assertEq(mockNft.ownerOf(BORROWER_NFT_ID), borrower, "NFT not returned to borrower");
+        assertEq(royaltyManager.getRoyaltyBalance(ipId, address(weth)), 0, "Royalty balance in RoyaltyManager not cleared");
+    }
+
+    function test_ClaimAndRepay_StoryAsset_PartialRepaymentByRoyalty() public {
+        // 1. Register NFT & create loan
+        vm.prank(borrower);
+        mockIpAssetRegistry.register(block.chainid, address(mockNft), BORROWER_NFT_ID);
+        address ipId = mockIpAssetRegistry.ipId(block.chainid, address(mockNft), BORROWER_NFT_ID);
+
+        vm.startPrank(lender);
+        bytes32 offerId = lendingProtocol.makeLoanOffer(ILendingProtocol.OfferParams({
+            offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(mockNft), nftTokenId: BORROWER_NFT_ID,
+            currency: address(weth), principalAmount: 1 ether, interestRateAPR: 36500, durationSeconds: 1 days,
+            expirationTimestamp: uint64(block.timestamp + 1 hours), originationFeeRate: 0,
+            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
+        }));
+        vm.stopPrank();
+
+        vm.startPrank(borrower);
+        bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
+        vm.stopPrank();
+
+        // 2. Setup partial royalty balance
+        uint256 expectedInterest = (1 ether * 36500 * 1) / (365 * 10000); // 0.01 ether
+        uint256 totalRepaymentDue = 1 ether + expectedInterest;
+        uint256 royaltyAvailable = 0.5 ether; // Less than total due
+
+        weth.mint(address(this), royaltyAvailable);
+        weth.approve(address(mockRoyaltyModule), royaltyAvailable);
+        mockRoyaltyModule.fundModule(address(weth), royaltyAvailable);
+        mockRoyaltyModule.setRoyaltyAmount(ipId, address(weth), royaltyAvailable);
+
+        // Borrower needs to have funds for the remaining amount
+        uint256 remainingForBorrower = totalRepaymentDue - royaltyAvailable;
+        weth.mint(borrower, remainingForBorrower); // Mint to borrower
+        vm.startPrank(borrower);
+        weth.approve(address(lendingProtocol), remainingForBorrower); // Borrower approves LP
+        vm.stopPrank();
+
+        // 3. Borrower calls claimAndRepay
+        vm.startPrank(borrower);
+        uint256 lenderWethBefore = weth.balanceOf(lender);
+        uint256 borrowerWethBefore = weth.balanceOf(borrower);
+
+        lendingProtocol.claimAndRepay(loanId);
+        vm.stopPrank();
+
+        // 4. Verify state
+        ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
+        assertEq(uint8(loan.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Loan status not REPAID");
+        assertEq(weth.balanceOf(lender), lenderWethBefore + totalRepaymentDue, "Lender did not receive full repayment");
+        assertEq(weth.balanceOf(borrower), borrowerWethBefore - remainingForBorrower, "Borrower balance incorrect");
+        assertEq(mockNft.ownerOf(BORROWER_NFT_ID), borrower, "NFT not returned to borrower");
+        // loan.principalAmount should be (original principal - royalty paid against principal part)
+        // In this setup, royalty (0.5e) is less than principal (1e), so it reduces principal.
+        // The interest (0.01e) is paid by borrower.
+        // totalRepaymentDue = 1.01e. Royalty = 0.5e. Borrower pays 0.51e.
+        // Loan struct principalAmount is principal MINUS amount paid by royalty towards principal.
+        // The problem description for LendingProtocol.claimAndRepay states:
+        // `currentLoan.principalAmount = originalPrincipal - amountToWithdrawFromRoyalty;`
+        // This means the `principalAmount` field in the loan struct will reflect the remaining principal *if* royalty was not enough to cover it.
+        // However, if the loan is REPAID, this field might not be as critical as the event.
+        // The event LoanRepaid emits originalPrincipal.
+        // Let's check the loan.accruedInterest is set.
+        assertEq(loan.accruedInterest, expectedInterest, "Accrued interest on loan struct incorrect");
+    }
+
+    function test_ClaimAndRepay_StoryAsset_NoRoyaltyBalance() public {
+        // 1. Register NFT & create loan
+        vm.prank(borrower);
+        mockIpAssetRegistry.register(block.chainid, address(mockNft), BORROWER_NFT_ID);
+        address ipId = mockIpAssetRegistry.ipId(block.chainid, address(mockNft), BORROWER_NFT_ID);
+
+        vm.startPrank(lender);
+        bytes32 offerId = lendingProtocol.makeLoanOffer(ILendingProtocol.OfferParams({
+            offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(mockNft), nftTokenId: BORROWER_NFT_ID,
+            currency: address(weth), principalAmount: 1 ether, interestRateAPR: 36500, durationSeconds: 1 days,
+            expirationTimestamp: uint64(block.timestamp + 1 hours), originationFeeRate: 0,
+            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
+        }));
+        vm.stopPrank();
+
+        vm.startPrank(borrower);
+        bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
+        vm.stopPrank();
+
+        // 2. Setup NO royalty balance
+        mockRoyaltyModule.setRoyaltyAmount(ipId, address(weth), 0);
+
+        uint256 expectedInterest = (1 ether * 36500 * 1) / (365 * 10000);
+        uint256 totalRepaymentDue = 1 ether + expectedInterest;
+
+        // Borrower needs to have funds for the full amount
+        weth.mint(borrower, totalRepaymentDue);
+        vm.startPrank(borrower);
+        weth.approve(address(lendingProtocol), totalRepaymentDue);
+        vm.stopPrank();
+
+        // 3. Borrower calls claimAndRepay
+        vm.startPrank(borrower);
+        uint256 lenderWethBefore = weth.balanceOf(lender);
+        uint256 borrowerWethBefore = weth.balanceOf(borrower);
+
+        lendingProtocol.claimAndRepay(loanId);
+        vm.stopPrank();
+
+        // 4. Verify state
+        ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId);
+        assertEq(uint8(loan.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Loan status not REPAID");
+        assertEq(weth.balanceOf(lender), lenderWethBefore + totalRepaymentDue, "Lender did not receive full repayment");
+        assertEq(weth.balanceOf(borrower), borrowerWethBefore - totalRepaymentDue, "Borrower balance incorrect");
+        assertEq(mockNft.ownerOf(BORROWER_NFT_ID), borrower, "NFT not returned to borrower");
+    }
 }

@@ -153,28 +153,60 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         require(offer.expirationTimestamp > block.timestamp, "Offer expired");
         require(msg.sender != offer.lender, "Cannot accept own offer");
 
-        address collateralContract;
-        uint256 collateralTokenId;
-        bool isCollateralVault = false;
+        // Determine the actual NFT being proposed for collateral (underlying asset)
+        address underlyingCollateralContract;
+        uint256 underlyingCollateralTokenId;
 
         if (offer.offerType == OfferType.STANDARD) {
-            collateralContract = offer.nftContract;
-            collateralTokenId = offer.nftTokenId;
-        } else {
-            collateralContract = nftContract;
-            collateralTokenId = nftTokenId;
-            require(collectionManager.isCollectionWhitelisted(collateralContract), "Collection not whitelisted");
+            underlyingCollateralContract = offer.nftContract;
+            underlyingCollateralTokenId = offer.nftTokenId;
+            // Whitelist check for STANDARD offers is typically done at offer creation.
+        } else { // OfferType.COLLECTION or other types that specify NFT at acceptance
+            underlyingCollateralContract = nftContract; // from function arguments
+            underlyingCollateralTokenId = nftTokenId; // from function arguments
+            require(collectionManager.isCollectionWhitelisted(underlyingCollateralContract), "Collection not whitelisted for this offer type");
         }
 
-        if (address(vaultsFactory) != address(0) && vaultsFactory.isVault(collateralTokenId)) {
-            require(vaultsFactory.ownerOfVault(collateralTokenId) == msg.sender, "Not vault owner");
+        address loanStoryIpId = address(0);
+        bool loanIsStoryAsset = false;
+
+        // Check if the underlying asset is registered with Story Protocol
+        address retrievedIpId = ipAssetRegistry.ipId(block.chainid, underlyingCollateralContract, underlyingCollateralTokenId);
+        if (retrievedIpId != address(0)) {
+            // A non-zero address from ipId does not guarantee it is registered AND valid.
+            // Explicitly call isRegistered.
+            if (ipAssetRegistry.isRegistered(retrievedIpId)) {
+                loanIsStoryAsset = true;
+                loanStoryIpId = retrievedIpId;
+            }
+        }
+
+        address effectiveCollateralContract = underlyingCollateralContract;
+        uint256 effectiveCollateralTokenId = underlyingCollateralTokenId;
+        // bool isCollateralVault = false; // This is declared later in the original function
+
+        address collateralContract; // This will be effectively replaced by effectiveCollateralContract
+        uint256 collateralTokenId; // This will be effectively replaced by effectiveCollateralTokenId
+        bool isCollateralVault = false; // This will be used and correctly set
+
+        // The logic for determining underlyingCollateralContract and underlyingCollateralTokenId is already inserted above.
+        // The following lines will now use effectiveCollateralContract and effectiveCollateralTokenId,
+        // which are initialized from underlyingCollateralContract and underlyingCollateralTokenId.
+
+        // Note: The original if/else for offer.offerType to set collateralContract/TokenId is now
+        // handled by the logic setting underlyingCollateralContract/TokenId, which then feed into effectiveCollateralContract/TokenId.
+        // The whitelist check for COLLECTION offers is also handled in the new section.
+
+        if (address(vaultsFactory) != address(0) && vaultsFactory.isVault(effectiveCollateralTokenId)) { // Use effectiveCollateralTokenId
+            require(vaultsFactory.ownerOfVault(effectiveCollateralTokenId) == msg.sender, "Not vault owner");
             isCollateralVault = true;
-            collateralContract = address(vaultsFactory);
+            effectiveCollateralContract = address(vaultsFactory); // Update effectiveCollateralContract
         } else {
-            require(IERC721(collateralContract).ownerOf(collateralTokenId) == msg.sender, "Not NFT owner");
+            // For non-vault, effectiveCollateralContract is already underlyingCollateralContract
+            require(IERC721(effectiveCollateralContract).ownerOf(effectiveCollateralTokenId) == msg.sender, "Not NFT owner");
         }
 
-        IERC721(collateralContract).safeTransferFrom(msg.sender, address(this), collateralTokenId);
+        IERC721(effectiveCollateralContract).safeTransferFrom(msg.sender, address(this), effectiveCollateralTokenId);
 
         loanCounter++;
         loanId = keccak256(abi.encodePacked("loan", loanCounter, msg.sender, offerId));
@@ -187,9 +219,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
             offerId: offerId,
             borrower: msg.sender,
             lender: offer.lender,
-            nftContract: collateralContract,
-            nftTokenId: collateralTokenId,
-            isVault: isCollateralVault,
+            nftContract: effectiveCollateralContract, // Use effective collateral contract
+            nftTokenId: effectiveCollateralTokenId,  // Use effective collateral token ID
+            isVault: isCollateralVault, // Correctly reflects if it's a vault
             currency: offer.currency,
             principalAmount: offer.principalAmount,
             interestRateAPR: offer.interestRateAPR,
@@ -197,7 +229,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
             startTime: startTime,
             dueTime: dueTime,
             accruedInterest: 0,
-            status: LoanStatus.ACTIVE
+            status: LoanStatus.ACTIVE,
+            storyIpId: loanStoryIpId, // Add Story IP ID
+            isStoryAsset: loanIsStoryAsset // Add Story asset flag
         });
 
         offer.isActive = false;
@@ -267,33 +301,54 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
         require(currentLoan.borrower == msg.sender, "Not borrower");
         require(currentLoan.status == LoanStatus.ACTIVE, "Loan not active");
 
-        address ipId = ipAssetRegistry.ipId(block.chainid, currentLoan.nftContract, currentLoan.nftTokenId);
-        royaltyManager.claimRoyalty(ipId);
-
-        uint256 royaltyBalance = royaltyManager.getRoyaltyBalance(ipId);
-        uint256 interest = calculateInterest(loanId);
-        uint256 totalRepayment = currentLoan.principalAmount + interest;
-
-        if (royaltyBalance >= totalRepayment) {
-            // Full repayment with royalties
-            // Transfer royalty to lender
-            // This assumes RoyaltyManager holds the tokens.
-            // A pull from RoyaltyManager would be needed here.
-            // For now, let's assume direct transfer for simplicity of this example.
-            IERC20(currentLoan.currency).transferFrom(address(royaltyManager), currentLoan.lender, totalRepayment);
-            currentLoan.status = LoanStatus.REPAID;
-            emit LoanRepaid(loanId, msg.sender, currentLoan.lender, currentLoan.principalAmount, interest);
+        address ipIdToUse;
+        if (currentLoan.isStoryAsset) {
+            require(currentLoan.storyIpId != address(0), "Loan is Story asset but IP ID is missing");
+            ipIdToUse = currentLoan.storyIpId;
         } else {
-            // Partial repayment
-            IERC20(currentLoan.currency).transferFrom(address(royaltyManager), currentLoan.lender, royaltyBalance);
-            currentLoan.principalAmount -= royaltyBalance; // Reduce principal
-            // Borrower pays the rest
-            uint256 remainingRepayment = totalRepayment - royaltyBalance;
-            IERC20(currentLoan.currency).safeTransferFrom(msg.sender, currentLoan.lender, remainingRepayment);
-            currentLoan.status = LoanStatus.REPAID;
-            emit LoanRepaid(loanId, msg.sender, currentLoan.lender, totalRepayment, interest);
+            ipIdToUse = ipAssetRegistry.ipId(block.chainid, currentLoan.nftContract, currentLoan.nftTokenId);
         }
 
+        // Call updated RoyaltyManager functions
+        royaltyManager.claimRoyalty(ipIdToUse, currentLoan.currency);
+        uint256 royaltyBalance = royaltyManager.getRoyaltyBalance(ipIdToUse, currentLoan.currency);
+
+        uint256 originalPrincipal = currentLoan.principalAmount; // Store original principal for event and calculations
+        uint256 interest = calculateInterest(loanId); // Interest calculation might use currentLoan.principalAmount, ensure this is intended if principal can change before this.
+        uint256 totalRepaymentDue = originalPrincipal + interest;
+
+        if (royaltyBalance > 0) {
+            uint256 amountToWithdrawFromRoyalty = royaltyBalance >= totalRepaymentDue ? totalRepaymentDue : royaltyBalance;
+
+            // Withdraw from RoyaltyManager to the lender
+            royaltyManager.withdrawRoyalty(ipIdToUse, currentLoan.currency, currentLoan.lender, amountToWithdrawFromRoyalty);
+
+            if (royaltyBalance >= totalRepaymentDue) { // Full repayment via royalty
+                // currentLoan.principalAmount remains originalPrincipal, it's fully paid.
+                currentLoan.accruedInterest = interest;
+                currentLoan.status = LoanStatus.REPAID;
+                emit LoanRepaid(loanId, msg.sender, currentLoan.lender, originalPrincipal, interest);
+            } else { // Partial repayment from royalty
+                // Reduce principal outstanding on the loan record
+                // The amount paid from royalty directly reduces the principal part of the loan first.
+                currentLoan.principalAmount = originalPrincipal - amountToWithdrawFromRoyalty;
+
+                uint256 remainingRepaymentByBorrower = totalRepaymentDue - amountToWithdrawFromRoyalty;
+                IERC20(currentLoan.currency).safeTransferFrom(msg.sender, currentLoan.lender, remainingRepaymentByBorrower);
+
+                currentLoan.accruedInterest = interest; // Total interest due has been covered (part by royalty, part by borrower)
+                currentLoan.status = LoanStatus.REPAID;
+                // Emitting originalPrincipal, as that was the principal at the start of this transaction.
+                emit LoanRepaid(loanId, msg.sender, currentLoan.lender, originalPrincipal, interest);
+            }
+        } else { // No royalty balance, borrower pays all
+            IERC20(currentLoan.currency).safeTransferFrom(msg.sender, currentLoan.lender, totalRepaymentDue);
+            currentLoan.accruedInterest = interest;
+            currentLoan.status = LoanStatus.REPAID;
+            emit LoanRepaid(loanId, msg.sender, currentLoan.lender, originalPrincipal, interest);
+        }
+
+        // Transfer NFT back to borrower only after loan is settled
         IERC721(currentLoan.nftContract).safeTransferFrom(address(this), currentLoan.borrower, currentLoan.nftTokenId);
     }
 
@@ -338,7 +393,9 @@ contract LendingProtocol is ILendingProtocol, Ownable, ReentrancyGuard, IERC721R
             startTime: uint64(block.timestamp),
             dueTime: uint64(block.timestamp) + uint64(newDurationSeconds),
             accruedInterest: 0,
-            status: LoanStatus.ACTIVE
+            status: LoanStatus.ACTIVE,
+            storyIpId: oldLoan.storyIpId,
+            isStoryAsset: oldLoan.isStoryAsset
         });
 
         oldLoan.status = LoanStatus.REPAID;
