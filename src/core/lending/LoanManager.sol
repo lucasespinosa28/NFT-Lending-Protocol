@@ -336,28 +336,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         loan.status = status;
     }
 
-    function _incrementLoanCounter() internal virtual returns (uint256 newLoanCounter) {
-        loanCounter++;
-        return loanCounter;
-    }
-
-    function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory newLoanData) internal virtual { // Corrected to memory from previous plan
-        require(loans[loanId].borrower == address(0), "LoanManager: Loan ID already exists");
-        loans[loanId] = newLoanData;
-    }
-
-    function _updateLoanAfterRenegotiation(
-        bytes32 loanId,
-        uint256 newPrincipal,
-        uint256 newAPR,
-        uint64 newDueTime
-    ) internal virtual {
-        ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
-        require(loan.borrower != address(0), "LoanManager: Loan does not exist for renegotiation");
-        require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "LoanManager: Loan not active for renegotiation");
-
-        loan.principalAmount = newPrincipal;
-        loan.interestRateAPR = newAPR;
-        loan.dueTime = newDueTime;
-    }
+    // _incrementLoanCounter was removed as it was only used by RefinanceManager
+    // _addLoan was removed as it was only used by RefinanceManager
+    // _updateLoanAfterRenegotiation was removed as it was only used by RefinanceManager
 }

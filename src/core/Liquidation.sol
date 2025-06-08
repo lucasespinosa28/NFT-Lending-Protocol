@@ -21,27 +21,8 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
     ILendingProtocol public lendingProtocol; // Address of the main lending protocol
 
     mapping(bytes32 => Auction) public auctions; // auctionId => Auction details
-    mapping(bytes32 => Buyout) public buyouts; // loanId => Buyout details
 
     uint256 private auctionCounter;
-
-    /**
-     * @notice Struct representing a buyout process for a loan.
-     * @param loanId The ID of the loan.
-     * @param largestLender The address of the largest lender.
-     * @param buyoutPrice The total amount required for buyout.
-     * @param buyoutDeadline The deadline for buyout.
-     * @param isActive True if the buyout is active.
-     * @param completed True if the buyout is completed.
-     */
-    struct Buyout {
-        bytes32 loanId;
-        address largestLender;
-        uint256 buyoutPrice; // Total to pay other tranches
-        uint64 buyoutDeadline;
-        bool isActive;
-        bool completed;
-    }
 
     // --- Modifiers ---
     /**
@@ -63,52 +44,6 @@ contract Liquidation is ILiquidation, Ownable, ReentrancyGuard {
             // Allow initialization if provided, but don't require
             lendingProtocol = ILendingProtocol(_lendingProtocolAddress);
         }
-    }
-
-    // --- Buyout Logic ---
-    /**
-     * @inheritdoc ILiquidation
-     */
-    function initiateBuyout(bytes32 loanId, address largestLender, uint256 buyoutPrice, uint64 buyoutDeadline)
-        external
-        override
-        onlyLendingProtocol
-    {
-        require(address(lendingProtocol) != address(0), "LP not set");
-        require(!buyouts[loanId].isActive, "Buyout already active");
-        buyouts[loanId] = Buyout({
-            loanId: loanId,
-            largestLender: largestLender,
-            buyoutPrice: buyoutPrice,
-            buyoutDeadline: buyoutDeadline,
-            isActive: true,
-            completed: false
-        });
-        emit BuyoutInitiated(loanId, largestLender, buyoutPrice, buyoutDeadline);
-    }
-
-    /**
-     * @inheritdoc ILiquidation
-     */
-    function executeBuyout(bytes32 loanId) external payable override nonReentrant {
-        require(address(lendingProtocol) != address(0), "LP not set");
-        Buyout storage currentBuyout = buyouts[loanId];
-        require(currentBuyout.isActive, "Buyout not active");
-        require(!currentBuyout.completed, "Buyout already completed");
-        require(msg.sender == currentBuyout.largestLender, "Not largest lender");
-        require(block.timestamp <= currentBuyout.buyoutDeadline, "Buyout deadline passed");
-
-        currentBuyout.completed = true;
-        currentBuyout.isActive = false;
-
-        emit BuyoutCompleted(loanId, msg.sender, currentBuyout.buyoutPrice);
-    }
-
-    /**
-     * @inheritdoc ILiquidation
-     */
-    function isBuyoutActive(bytes32 loanId) external view override returns (bool) {
-        return buyouts[loanId].isActive && block.timestamp <= buyouts[loanId].buyoutDeadline;
     }
 
     // --- Auction Logic ---

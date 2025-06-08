@@ -8,7 +8,6 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 // Manager contracts to inherit from
 import {OfferManager} from "./lending/OfferManager.sol";
 import {LoanManager} from "./lending/LoanManager.sol";
-import {RefinanceManager} from "./lending/RefinanceManager.sol";
 import {AdminManager} from "./lending/AdminManager.sol";
 
 // Interfaces for state variables
@@ -24,7 +23,6 @@ contract LendingProtocol is
     ILendingProtocol,
     OfferManager,
     LoanManager,
-    RefinanceManager,
     AdminManager
 {
     ICurrencyManager public currencyManager;
@@ -66,8 +64,8 @@ contract LendingProtocol is
     // These are LendingProtocol's implementations of virtual functions declared in managers,
     // allowing managers to access shared state or cross-manager functionality via LendingProtocol.
 
-    // For OfferManager, LoanManager, RefinanceManager
-    function _getCurrencyManager() internal view override(OfferManager, LoanManager, RefinanceManager) returns (ICurrencyManager) {
+    // For OfferManager, LoanManager
+    function _getCurrencyManager() internal view override(OfferManager, LoanManager) returns (ICurrencyManager) {
         return currencyManager;
     }
 
@@ -103,36 +101,6 @@ contract LendingProtocol is
         OfferManager._setLoanOfferInactive(offerId); // DIAGNOSTIC: Explicit call
     }
 
-    // Bridge for RefinanceManager to access LoanManager's public getLoan
-    function _getLoan(bytes32 loanId) internal view override(RefinanceManager) returns (ILendingProtocol.Loan memory) {
-        return this.getLoan(loanId); // Calls LoanManager.getLoan() via inheritance
-    }
-
-    // Bridge for RefinanceManager to access LoanManager's internal _setLoanStatus
-    function _setLoanStatus(bytes32 loanId, ILendingProtocol.LoanStatus status) internal override(RefinanceManager, LoanManager) {
-        super._setLoanStatus(loanId, status); // Calls LoanManager._setLoanStatus()
-    }
-
-    // Bridge for RefinanceManager to access LoanManager's internal _incrementLoanCounter
-    function _incrementLoanCounter() internal override(RefinanceManager, LoanManager) returns (uint256) {
-        return super._incrementLoanCounter(); // Calls LoanManager._incrementLoanCounter()
-    }
-
-    // Bridge for RefinanceManager to access LoanManager's internal _addLoan
-    function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData) internal override(RefinanceManager, LoanManager) { // memory
-        super._addLoan(loanId, loanData); // Calls LoanManager._addLoan()
-    }
-
-    // Bridge for RefinanceManager to access LoanManager's public calculateInterest
-    function _calculateInterest(bytes32 loanId) internal view override(RefinanceManager) returns (uint256) {
-        return this.calculateInterest(loanId); // Calls LoanManager.calculateInterest() via inheritance
-    }
-
-    // Bridge for RefinanceManager to access LoanManager's internal _updateLoanAfterRenegotiation
-    function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime) internal override(RefinanceManager, LoanManager) {
-        super._updateLoanAfterRenegotiation(loanId, newPrincipal, newAPR, newDueTime); // Calls LoanManager._updateLoanAfterRenegotiation()
-    }
-
     // --- AdminManager setter implementations ---
     function _setCurrencyManager(ICurrencyManager newManager) internal override(AdminManager) { currencyManager = newManager; }
     function _setCollectionManager(ICollectionManager newManager) internal override(AdminManager) { collectionManager = newManager; }
@@ -164,18 +132,6 @@ contract LendingProtocol is
 
     function claimAndRepay(bytes32 loanId) public override(ILendingProtocol, LoanManager) {
         super.claimAndRepay(loanId);
-    }
-
-    function refinanceLoan( bytes32 existingLoanId, uint256 newPrincipalAmount, uint256 newInterestRateAPR, uint256 newDurationSeconds, uint256 newOriginationFeeRate) public override(ILendingProtocol, RefinanceManager) returns (bytes32 newLoanId) {
-        return super.refinanceLoan(existingLoanId, newPrincipalAmount, newInterestRateAPR, newDurationSeconds, newOriginationFeeRate);
-    }
-
-    function proposeRenegotiation( bytes32 loanId, uint256 proposedPrincipalAmount, uint256 proposedInterestRateAPR, uint256 proposedDurationSeconds) public override(ILendingProtocol, RefinanceManager) returns (bytes32 proposalId) {
-        return super.proposeRenegotiation(loanId, proposedPrincipalAmount, proposedInterestRateAPR, proposedDurationSeconds);
-    }
-
-    function acceptRenegotiation(bytes32 proposalId) public override(ILendingProtocol, RefinanceManager) {
-        super.acceptRenegotiation(proposalId);
     }
 
     function claimCollateral(bytes32 loanId) public override(ILendingProtocol, LoanManager) {
@@ -220,6 +176,16 @@ contract LendingProtocol is
 
     // onERC721Received is handled by LoanManager and inherited.
     // LendingProtocol is an IERC721Receiver via LoanManager.
+
+    // Bridge functions previously used by RefinanceManager that might still be needed by LoanManager internally,
+    // or were overridden by LoanManager. We need to ensure LoanManager still has these if it declares them.
+    // If LoanManager._setLoanStatus, _incrementLoanCounter, _addLoan, _updateLoanAfterRenegotiation
+    // were *only* overridden to be exposed to RefinanceManager from LendingProtocol,
+    // and LoanManager itself doesn't have a `super` call to a base version of these,
+    // then their declarations in LoanManager might become unused if not called internally.
+    // For now, we assume LoanManager's own versions are sufficient.
+    // We removed the LendingProtocol level overrides that specified RefinanceManager.
+    // LoanManager's own declarations of these (if any) are untouched by this diff.
 
     receive() external payable {}
 }

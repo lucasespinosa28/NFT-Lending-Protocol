@@ -178,46 +178,6 @@ interface ILendingProtocol {
     );
 
     /**
-     * @notice Emitted when a loan is refinanced.
-     * @param oldLoanId The unique identifier for the old loan.
-     * @param newLoanId The unique identifier for the new loan.
-     * @param borrower The address of the borrower.
-     * @param oldLender The address of the old lender.
-     * @param newLender The address of the new lender.
-     * @param principalAmount The new principal amount.
-     * @param newInterestRateAPR The new annual percentage rate.
-     * @param newDueTime The new due timestamp.
-     */
-    event LoanRefinanced(
-        bytes32 indexed oldLoanId,
-        bytes32 indexed newLoanId,
-        address indexed borrower,
-        address oldLender,
-        address newLender,
-        uint256 principalAmount,
-        uint256 newInterestRateAPR,
-        uint64 newDueTime
-    );
-
-    /**
-     * @notice Emitted when a loan is renegotiated.
-     * @param loanId The unique identifier for the loan.
-     * @param borrower The address of the borrower.
-     * @param lender The address of the lender.
-     * @param newPrincipalAmount The new principal amount.
-     * @param newInterestRateAPR The new annual percentage rate.
-     * @param newDueTime The new due timestamp.
-     */
-    event LoanRenegotiated(
-        bytes32 indexed loanId,
-        address indexed borrower,
-        address indexed lender,
-        uint256 newPrincipalAmount,
-        uint256 newInterestRateAPR,
-        uint64 newDueTime
-    );
-
-    /**
      * @notice Emitted when collateral is claimed by the lender after default.
      * @param loanId The unique identifier for the loan.
      * @param lender The address of the lender.
@@ -305,48 +265,6 @@ interface ILendingProtocol {
      * @param loanId The ID of the loan to repay.
      */
     function repayLoan(bytes32 loanId) external;
-
-    /**
-     * @notice Manages refinancing of an existing loan by a new (or same) lender with better terms.
-     * @dev Can be initiated by a lender. If APR is better by >=5%, no borrower approval needed.
-     * @dev Transfers principal + accrued interest to old lender, updates loan terms. Emits LoanRefinanced.
-     * @param existingLoanId The ID of the loan to be refinanced.
-     * @param newPrincipalAmount The new principal amount (can be same or higher if APR reduction is significant).
-     * @param newInterestRateAPR The new APR (must be at least 5% lower for automatic refinancing).
-     * @param newDurationSeconds The new duration (can be extended).
-     * @param newOriginationFeeRate Optional new origination fee for the refinancer.
-     * @return newLoanId The ID of the new loan terms (can be the same loanId with updated state).
-     */
-    function refinanceLoan(
-        bytes32 existingLoanId,
-        uint256 newPrincipalAmount,
-        uint256 newInterestRateAPR,
-        uint256 newDurationSeconds,
-        uint256 newOriginationFeeRate
-    ) external returns (bytes32 newLoanId);
-
-    /**
-     * @notice Allows lenders to propose new terms for an existing loan, requiring borrower acceptance.
-     * @dev This is for renegotiations that are not strictly better (e.g., APR increase, significant principal increase without sufficient APR drop).
-     * @param loanId The ID of the loan to renegotiate.
-     * @param proposedPrincipalAmount The newly proposed principal.
-     * @param proposedInterestRateAPR The newly proposed APR.
-     * @param proposedDurationSeconds The newly proposed duration.
-     * @return proposalId A unique ID for this renegotiation proposal.
-     */
-    function proposeRenegotiation(
-        bytes32 loanId,
-        uint256 proposedPrincipalAmount,
-        uint256 proposedInterestRateAPR,
-        uint256 proposedDurationSeconds
-    ) external returns (bytes32 proposalId);
-
-    /**
-     * @notice Allows a borrower to accept a renegotiation proposal.
-     * @dev Emits LoanRenegotiated.
-     * @param proposalId The ID of the renegotiation proposal to accept.
-     */
-    function acceptRenegotiation(bytes32 proposalId) external;
 
     /**
      * @notice For lenders to claim collateral upon default in single-tranche loans.

@@ -43,32 +43,6 @@ interface ILiquidation {
     // --- Events ---
 
     /**
-     * @notice Emitted when a buyout process is initiated for a multi-tranche loan.
-     * @param loanId The ID of the defaulted loan.
-     * @param largestLender The address of the lender with the largest principal.
-     * @param buyoutPrice The total amount required to buy out other tranches.
-     * @param buyoutDeadline The timestamp by which the buyout must be completed.
-     */
-    event BuyoutInitiated(
-        bytes32 indexed loanId, address indexed largestLender, uint256 buyoutPrice, uint64 buyoutDeadline
-    );
-
-    /**
-     * @notice Emitted when a buyout is completed by the largest lender.
-     * @param loanId The ID of the loan.
-     * @param buyer The address of the lender who completed the buyout.
-     * @param amountPaid The amount paid for the buyout.
-     */
-    event BuyoutCompleted( // The largest lender who bought out others
-    bytes32 indexed loanId, address indexed buyer, uint256 amountPaid);
-
-    /**
-     * @notice Emitted when a buyout fails (e.g., deadline passed).
-     * @param loanId The ID of the loan.
-     */
-    event BuyoutFailed(bytes32 indexed loanId);
-
-    /**
      * @notice Emitted when an auction is started for a defaulted loan's collateral.
      * @param auctionId The unique ID for the auction.
      * @param loanId The ID of the defaulted loan.
@@ -119,24 +93,6 @@ interface ILiquidation {
     bytes32 indexed auctionId, address claimer);
 
     // --- Functions ---
-
-    /**
-     * @notice Initiates the largest lien buyout process for a defaulted multi-tranche loan.
-     * @dev Called by the main lending protocol or an authorized party.
-     * @param loanId The ID of the defaulted loan.
-     * @param largestLender The address of the lender with the largest principal.
-     * @param buyoutPrice The total amount required to buy out other tranches.
-     * @param buyoutDeadline Timestamp by which the buyout must be completed.
-     */
-    function initiateBuyout(bytes32 loanId, address largestLender, uint256 buyoutPrice, uint64 buyoutDeadline)
-        external;
-
-    /**
-     * @notice Allows the largest lender to execute the buyout of other tranches.
-     * @dev Transfers funds from the largest lender to other lenders.
-     * @param loanId The ID of the loan being bought out.
-     */
-    function executeBuyout(bytes32 loanId) external payable; // payable if currency is ETH/WETH
 
     /**
      * @notice Initiates an English auction if no buyout occurs or for single-lender defaults.
@@ -202,11 +158,4 @@ interface ILiquidation {
      * @return The Auction struct.
      */
     function getAuction(bytes32 auctionId) external view returns (Auction memory);
-
-    /**
-     * @notice Checks if a buyout is currently active for a loan.
-     * @param loanId The ID of the loan.
-     * @return True if a buyout is active, false otherwise.
-     */
-    function isBuyoutActive(bytes32 loanId) external view returns (bool);
 }
