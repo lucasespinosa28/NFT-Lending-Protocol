@@ -84,3 +84,186 @@ Users might need to register on the platform.
 ## Disclaimer
 
 This project is in the development phase. The information provided here is subject to change. Investing in NFTs and cryptocurrencies involves significant risk.
+
+---
+
+## Smart Contracts Detailed Report
+
+This report provides a detailed overview of the smart contracts within the `src/core` and `src/core/lending` directories, outlining their purpose, key functionalities, and interactions.
+
+### Table of Contents
+
+1.  [Overview](#overview)
+2.  [Core Protocol Contract](#core-protocol-contract)
+    *   [LendingProtocol.sol](#lendingprotocolsol)
+3.  [Manager Contracts (src/core/lending)](#manager-contracts-srccorelending)
+    *   [AdminManager.sol](#adminmanagersol)
+    *   [LoanManager.sol](#loanmanagersol)
+    *   [OfferManager.sol](#offermanagersol)
+    *   [RefinanceManager.sol](#refinancemanagersol)
+    *   [RequestManager.sol](#requestmanagersol)
+4.  [Supporting Service Contracts (src/core)](#supporting-service-contracts-srccore)
+    *   [CollectionManager.sol](#collectionmanagersol)
+    *   [CurrencyManager.sol](#currencymanagersol)
+    *   [Liquidation.sol](#liquidationsol)
+    *   [PurchaseBundler.sol](#purchasebundlersol)
+    *   [RangeValidator.sol](#rangevalidatorsol)
+    *   [RoyaltyManager.sol](#royaltymanagersol)
+    *   [Stash.sol](#stashsol)
+5.  [Contract Interactions Summary](#contract-interactions-summary)
+
+---
+
+### 1. Overview
+
+The protocol implements a decentralized NFT lending and borrowing system. The `LendingProtocol` contract acts as the central hub, integrating functionalities from various specialized manager contracts (for offers, loans, refinancing, administration, and loan requests) and supporting service contracts (for managing collections, currencies, liquidations, etc.). This modular design enhances clarity and maintainability.
+
+---
+
+### 2. Core Protocol Contract
+
+#### LendingProtocol.sol
+
+*   **Purpose**: This is the main contract that orchestrates the entire lending and borrowing process. It integrates functionalities from several manager contracts by inheriting from them. It also holds references to other core service contracts.
+*   **Key Functionalities**:
+    *   Manages the overall state of the lending platform.
+    *   Provides external functions for users to interact with the protocol (e.g., make offers, accept offers, repay loans).
+    *   Delegates specific tasks to the respective manager contracts.
+    *   Handles interactions between different modules (e.g., using `CurrencyManager` to check supported currencies, `CollectionManager` for whitelisted NFTs).
+    *   Implements the `ILendingProtocol` interface, providing a unified entry point for all lending operations.
+    *   Acts as a bridge for manager contracts to access shared state or cross-manager functionality through overridden internal "getter" functions (e.g., `_getCurrencyManager()`).
+*   **Inherits**: `OfferManager`, `LoanManager`, `RefinanceManager`, `AdminManager`, `RequestManager`.
+*   **Interacts With**: `ICurrencyManager`, `ICollectionManager`, `ILiquidation`, `IPurchaseBundler`, `IRoyaltyManager`, `IIPAssetRegistry`.
+
+---
+
+### 3. Manager Contracts (src/core/lending)
+
+These contracts are designed to be inherited by `LendingProtocol.sol` and manage specific aspects of the lending lifecycle.
+
+#### AdminManager.sol
+
+*   **Purpose**: Manages administrative functions of the `LendingProtocol`.
+*   **Key Functionalities**:
+    *   Ownable: Restricts sensitive functions to the owner.
+    *   Allows the owner to set and update addresses of critical dependent contracts like `CurrencyManager`, `CollectionManager`, `Liquidation`, `PurchaseBundler`, `RoyaltyManager`, and `IIPAssetRegistry`.
+    *   Provides emergency withdrawal functions for ERC20, ERC721 tokens, and native ETH, callable only by the owner, to safeguard funds in unforeseen circumstances.
+*   **Inherits**: `Ownable`.
+*   **Interactions**:
+    *   Defines virtual functions (e.g., `_setCurrencyManager`) that are implemented by `LendingProtocol` to modify its state.
+
+#### LoanManager.sol
+
+*   **Purpose**: Manages the lifecycle of active loans, from acceptance to repayment or default.
+*   **Key Functionalities**:
+    *   Handles the acceptance of loan offers (`acceptLoanOffer`) and loan requests (`acceptLoanRequest`). This includes transferring the NFT collateral to the protocol and the principal to the borrower.
+    *   Calculates interest due on loans (`calculateInterest`).
+    *   Processes loan repayments (`repayLoan`, `claimAndRepay`).
+    *   Manages collateral claims by lenders in case of default (`claimCollateral`).
+    *   Facilitates listing collateral for sale by borrowers (`listCollateralForSale`) and processes the purchase and repayment (`buyCollateralAndRepay`).
+    *   Records loan repayments that occur via the `PurchaseBundler` (`recordLoanRepaymentViaSale`).
+    *   Implements `IERC721Receiver` to receive NFTs.
+    *   Provides views for loan status (`getLoan`, `isLoanRepayable`, `isLoanInDefault`).
+*   **Inherits**: `ReentrancyGuard`, `IERC721Receiver`.
+*   **Interactions**:
+    *   Uses `_getCurrencyManager`, `_getCollectionManager`, `_getIpAssetRegistry`, `_getRoyaltyManager`, `_getPurchaseBundler` (provided by `LendingProtocol`) to interact with respective services.
+    *   Calls `_getLoanOffer` and `_setLoanOfferInactive` (from `OfferManager` via `LendingProtocol`) when an offer is accepted.
+    *   Calls `_getLoanRequest` and `_setLoanRequestInactive` (from `RequestManager` via `LendingProtocol`) when a request is accepted.
+    *   Defines internal virtual functions (`_setLoanStatus`, `_incrementLoanCounter`, `_addLoan`, `_updateLoanAfterRenegotiation`) for use by other managers (like `RefinanceManager`) through `LendingProtocol`.
+
+#### OfferManager.sol
+
+*   **Purpose**: Manages the creation and cancellation of loan offers made by lenders.
+*   **Key Functionalities**:
+    *   Allows lenders to create new loan offers (`makeLoanOffer`) for specific NFTs or collections.
+    *   Allows lenders to cancel their active loan offers (`cancelLoanOffer`).
+    *   Provides a view to get details of a loan offer (`getLoanOffer`).
+    *   Tracks loan offers in the `loanOffers` mapping.
+*   **Inherits**: `ReentrancyGuard`.
+*   **Interactions**:
+    *   Uses `_getCurrencyManager` and `_getCollectionManager` (provided by `LendingProtocol`) to validate offer parameters.
+    *   Defines an internal virtual function `_setLoanOfferInactive` to be called by `LoanManager` (via `LendingProtocol`) when an offer is accepted.
+
+#### RefinanceManager.sol
+
+*   **Purpose**: Manages the refinancing and renegotiation of existing loans.
+*   **Key Functionalities**:
+    *   Allows a new lender to refinance an existing loan (`refinanceLoan`), potentially with better terms for the borrower. This involves repaying the old lender and creating a new loan.
+    *   Allows the current lender of a loan to propose new terms (`proposeRenegotiation`).
+    *   Allows the borrower to accept a renegotiation proposal (`acceptRenegotiation`), thereby updating the loan terms.
+    *   Tracks renegotiation proposals.
+*   **Inherits**: `ReentrancyGuard`.
+*   **Interactions**:
+    *   Uses `_getLoan`, `_setLoanStatus`, `_incrementLoanCounter`, `_addLoan`, `_calculateInterest`, `_updateLoanAfterRenegotiation` (from `LoanManager` via `LendingProtocol`) to manage and modify loan states during refinancing and renegotiation.
+    *   Uses `_getCurrencyManager` (provided by `LendingProtocol`) for currency validation if needed.
+
+#### RequestManager.sol
+
+*   **Purpose**: Manages loan requests made by borrowers.
+*   **Key Functionalities**:
+    *   Allows borrowers to create loan requests (`makeLoanRequest`).
+    *   Allows borrowers to cancel their active loan requests (`cancelLoanRequest`).
+    *   Provides a view to get details of a loan request (`getLoanRequest`).
+*   **Inherits**: `ReentrancyGuard`.
+*   **Interactions**:
+    *   Uses `_getCurrencyManager` and `_getCollectionManager` (provided by `LendingProtocol`) to validate request parameters.
+    *   Defines `_setLoanRequestInactive` for `LoanManager` (via `LendingProtocol`) usage.
+
+---
+
+### 4. Supporting Service Contracts (src/core)
+
+#### CollectionManager.sol
+
+*   **Purpose**: Manages whitelisted NFT collections eligible for collateral.
+*   **Key Functionalities**: Add/remove collections, check whitelist status.
+*   **Inherits**: `ICollectionManager`, `Ownable`, `ReentrancyGuard`.
+*   **Interactions**: Used by `LendingProtocol` and its managers.
+
+#### CurrencyManager.sol
+
+*   **Purpose**: Manages supported ERC20 currencies for loans.
+*   **Key Functionalities**: Add/remove currencies, check support status.
+*   **Inherits**: `ICurrencyManager`, `Ownable`.
+*   **Interactions**: Used by `LendingProtocol` and its managers.
+
+#### Liquidation.sol
+
+*   **Purpose**: Manages liquidation of defaulted loan collateral (auctions, buyouts).
+*   **Key Functionalities**: Initiate/execute buyouts, start/manage auctions, distribute proceeds.
+*   **Inherits**: `ILiquidation`, `Ownable`, `ReentrancyGuard`.
+*   **Interactions**: Called by `LendingProtocol` for defaulted loans.
+
+#### PurchaseBundler.sol
+
+*   **Purpose**: Facilitates selling collateralized NFTs to repay loans.
+*   **Key Functionalities**: List collateral, buy listed collateral (repays loan, transfers NFT & surplus).
+*   **Inherits**: `IPurchaseBundler`, `Ownable`, `ReentrancyGuard`.
+*   **Interactions**: `LendingProtocol` lists collateral; `PurchaseBundler` calls `LendingProtocol` to record repayment.
+
+#### RangeValidator.sol
+
+*   **Purpose**: Validates token IDs for collection offers (e.g., Art Blocks ranges).
+*   **Key Functionalities**: Set range rules, set specific validators, check token ID validity.
+*   **Inherits**: `IRangeValidator`, `Ownable`.
+*   **Interactions**: Used by `OfferManager` (via `LendingProtocol`).
+
+#### RoyaltyManager.sol
+
+*   **Purpose**: Manages and claims royalties for IP assets using Story Protocol.
+*   **Key Functionalities**: Claim royalties, track balances, withdraw royalties.
+*   **Inherits**: `IRoyaltyManager`, `Ownable`.
+*   **Interactions**: Used by `LoanManager` for `claimAndRepay`; interacts with Story Protocol.
+
+#### Stash.sol
+
+*   **Purpose**: Wraps ERC721 tokens for compatibility, creating derivative "stash tokens".
+*   **Key Functionalities**: Stash original NFT (held by contract) to mint stash token, unstash to burn token and retrieve original.
+*   **Inherits**: `IStash`, `ERC721`, `Ownable`, `IERC721Receiver`.
+*   **Interactions**: Checks with `IIPAssetRegistry` (Story Protocol); stashed tokens could be used as collateral.
+
+---
+
+### 5. Contract Interactions Summary
+
+`LendingProtocol` is central, inheriting from manager contracts and composing with service contracts. Example flow (Accepting Loan Offer): Borrower calls `LendingProtocol.acceptLoanOffer` -> `LoanManager` logic (inherited) retrieves offer via `OfferManager` bridge, validates with `CurrencyManager`/`CollectionManager` bridges, transfers NFT to `LendingProtocol`, creates loan record, deactivates offer via `OfferManager` bridge, transfers principal.
