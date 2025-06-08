@@ -4,5 +4,5 @@ out = "out"
 libs = ["lib"]
 auto_detect_solc = true
 optimizer = true
-# via_ir = true # Add or set this to true
+via_ir = true # Add or set this to true
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
