@@ -10,6 +10,7 @@ import {OfferManager} from "./lending/OfferManager.sol";
 import {LoanManager} from "./lending/LoanManager.sol";
 import {RefinanceManager} from "./lending/RefinanceManager.sol";
 import {AdminManager} from "./lending/AdminManager.sol";
+import {RequestManager} from "./lending/RequestManager.sol";
 
 // Interfaces for state variables
 import {ICurrencyManager} from "../interfaces/ICurrencyManager.sol";
@@ -24,7 +25,8 @@ contract LendingProtocol is
     OfferManager,
     LoanManager,
     RefinanceManager,
-    AdminManager
+    AdminManager,
+    RequestManager
 {
     // Re-define event here to resolve emit scoping issues
     event LoanRenegotiationProposed(
@@ -71,13 +73,13 @@ contract LendingProtocol is
     // These are LendingProtocol's implementations of virtual functions declared in managers,
     // allowing managers to access shared state or cross-manager functionality via LendingProtocol.
 
-    // For OfferManager, LoanManager, RefinanceManager
-    function _getCurrencyManager() internal view override(OfferManager, LoanManager, RefinanceManager) returns (ICurrencyManager) {
+    // For OfferManager, LoanManager, RefinanceManager, RequestManager
+    function _getCurrencyManager() internal view override(OfferManager, LoanManager, RefinanceManager, RequestManager) returns (ICurrencyManager) {
         return currencyManager;
     }
 
-    // For OfferManager, LoanManager
-    function _getCollectionManager() internal view override(OfferManager, LoanManager) returns (ICollectionManager) {
+    // For OfferManager, LoanManager, RequestManager
+    function _getCollectionManager() internal view override(OfferManager, LoanManager, RequestManager) returns (ICollectionManager) {
         return collectionManager;
     }
 
@@ -131,6 +133,17 @@ contract LendingProtocol is
     // Bridge for RefinanceManager to access LoanManager's internal _updateLoanAfterRenegotiation
     function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime) internal override(RefinanceManager, LoanManager) {
         LoanManager._updateLoanAfterRenegotiation(loanId, newPrincipal, newAPR, newDueTime); // Explicitly call LoanManager's implementation
+    }
+
+    // Bridge for LoanManager to access RequestManager's getLoanRequest
+    function _getLoanRequest(bytes32 requestId) internal view override(LoanManager) returns (ILendingProtocol.LoanRequest memory) {
+        return RequestManager.getLoanRequest(requestId); // Call RequestManager's public getter
+    }
+
+    // Bridge for LoanManager to access RequestManager's _setLoanRequestInactive
+    // This also overrides RequestManager's own virtual function, effectively making LendingProtocol the central point for this.
+    function _setLoanRequestInactive(bytes32 requestId) internal override(LoanManager, RequestManager) {
+        RequestManager._setLoanRequestInactive(requestId); // Call RequestManager's internal function
     }
 
     // --- AdminManager setter implementations ---
@@ -230,6 +243,77 @@ contract LendingProtocol is
 
     // onERC721Received is handled by LoanManager and inherited.
     // LendingProtocol is an IERC721Receiver via LoanManager.
+
+    // --- RequestManager Functions ---
+
+    function makeLoanRequest(ILendingProtocol.LoanRequestParams calldata params)
+        public
+        override(ILendingProtocol, RequestManager)
+        returns (bytes32 requestId)
+    {
+        requestId = super.makeLoanRequest(params); // Calls RequestManager.makeLoanRequest()
+        emit LoanRequestMade(
+            requestId,
+            msg.sender, // In LendingProtocol, msg.sender is the original caller
+            params.nftContract,
+            params.nftTokenId,
+            params.currency,
+            params.principalAmount,
+            params.interestRateAPR,
+            params.durationSeconds,
+            params.expirationTimestamp
+        );
+        // requestId is already returned by the assignment from super call.
+    }
+
+    function cancelLoanRequest(bytes32 requestId)
+        public
+        override(ILendingProtocol, RequestManager)
+    {
+        super.cancelLoanRequest(requestId); // Calls RequestManager.cancelLoanRequest()
+        emit LoanRequestCancelled(requestId, msg.sender); // msg.sender is the original caller
+    }
+
+    function getLoanRequest(bytes32 requestId)
+        public
+        view
+        override(ILendingProtocol, RequestManager)
+        returns (ILendingProtocol.LoanRequest memory)
+    {
+        return super.getLoanRequest(requestId); // Calls RequestManager.getLoanRequest()
+    }
+
+    function acceptLoanRequest(bytes32 requestId)
+        public
+        override(ILendingProtocol, LoanManager) // LoanManager because it's now virtual there too
+        returns (bytes32 loanId)
+    {
+        // Note: LoanManager's acceptLoanRequest emits OfferAccepted.
+        // Here we emit the more specific LoanRequestAccepted.
+        // We need details from the request and the resulting loan.
+        // Calling super.acceptLoanRequest() will execute LoanManager's logic.
+        // To get all details for LoanRequestAccepted, we might need to get the request again, or have LoanManager return more info.
+        // For now, let's get the request data first.
+
+        ILendingProtocol.LoanRequest memory request = getLoanRequest(requestId); // Get request details using the public getter
+
+        loanId = super.acceptLoanRequest(requestId); // Calls LoanManager.acceptLoanRequest()
+
+        // msg.sender is the lender in this context
+        // The `loans` mapping is inherited from LoanManager.
+        emit LoanRequestAccepted(
+            requestId,
+            loanId,
+            msg.sender, // lender
+            request.borrower,
+            request.nftContract,
+            request.nftTokenId,
+            request.currency,
+            request.principalAmount,
+            loans[loanId].dueTime
+        );
+        return loanId;
+    }
 
     receive() external payable {}
 }
