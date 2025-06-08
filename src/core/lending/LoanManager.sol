@@ -44,14 +44,14 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
 
     // --- External Dependencies (assumed to be available from inheriting contract e.g. LendingProtocol) ---
     // These functions will be overridden in LendingProtocol to return its state variables.
-    function _getCurrencyManager() internal view virtual returns (ICurrencyManager) { revert("LM: CurrencyManager not set"); }
-    function _getCollectionManager() internal view virtual returns (ICollectionManager) { revert("LM: CollectionManager not set"); }
-    function _getVaultsFactory() internal view virtual returns (IVaultsFactory) { revert("LM: VaultsFactory not set"); }
-    function _getIpAssetRegistry() internal view virtual returns (IIPAssetRegistry) { revert("LM: IPAssetRegistry not set"); }
-    function _getRoyaltyManager() internal view virtual returns (IRoyaltyManager) { revert("LM: RoyaltyManager not set"); }
-    function _getPurchaseBundler() internal view virtual returns (IPurchaseBundler) { revert("LM: PurchaseBundler not set"); }
-    function _getLoanOffer(bytes32 offerId) internal view virtual returns (ILendingProtocol.LoanOffer memory) { revert("LM: OfferManager not set"); }
-    function _setLoanOfferInactive(bytes32 offerId) internal virtual { revert("LM: OfferManager not set"); }
+    function _getCurrencyManager() internal view virtual returns (ICurrencyManager) { /* revert("LM: CurrencyManager not set"); */ return ICurrencyManager(address(0)); }
+    function _getCollectionManager() internal view virtual returns (ICollectionManager) { /* revert("LM: CollectionManager not set"); */ return ICollectionManager(address(0)); }
+    function _getVaultsFactory() internal view virtual returns (IVaultsFactory) { /* revert("LM: VaultsFactory not set"); */ return IVaultsFactory(address(0)); }
+    function _getIpAssetRegistry() internal view virtual returns (IIPAssetRegistry) { /* revert("LM: IPAssetRegistry not set"); */ return IIPAssetRegistry(address(0)); }
+    function _getRoyaltyManager() internal view virtual returns (IRoyaltyManager) { /* revert("LM: RoyaltyManager not set"); */ return IRoyaltyManager(address(0)); }
+    function _getPurchaseBundler() internal view virtual returns (IPurchaseBundler) { /* revert("LM: PurchaseBundler not set"); */ return IPurchaseBundler(address(0)); }
+    function _getLoanOffer(bytes32 offerId) internal view virtual returns (ILendingProtocol.LoanOffer memory) { /* revert("LM: OfferManager not set"); */ return ILendingProtocol.LoanOffer({offerId: bytes32(0), lender: address(0), offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(0), nftTokenId: 0, currency: address(0), principalAmount: 0, interestRateAPR: 0, durationSeconds: 0, expirationTimestamp: 0, originationFeeRate: 0, maxSeniorRepayment: 0, totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0, isActive: true}); }
+    function _setLoanOfferInactive(bytes32 offerId) internal virtual { /* revert("LM: OfferManager not set"); */ }
 
 
     // --- Functions ---

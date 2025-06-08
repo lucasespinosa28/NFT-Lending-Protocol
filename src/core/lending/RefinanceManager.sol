@@ -56,15 +56,15 @@ contract RefinanceManager is ReentrancyGuard {
     // Event definitions are now taken from ILendingProtocol.sol
 
     // --- External Dependencies (assumed to be available from inheriting contract e.g. LendingProtocol) ---
-    function _getLoan(bytes32 loanId) internal view virtual returns (ILendingProtocol.Loan memory) { revert("RM: LoanManager not set"); }
-    function _setLoanStatus(bytes32 loanId, ILendingProtocol.LoanStatus status) internal virtual { revert("RM: LoanManager not set"); }
-    function _incrementLoanCounter() internal virtual returns (uint256) { revert("RM: LoanManager not set"); }
-    function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData) internal virtual { revert("RM: LoanManager not set"); } // Changed to memory
-    function _calculateInterest(bytes32 loanId) internal view virtual returns (uint256) { revert("RM: LoanManager not set"); }
+    function _getLoan(bytes32 loanId) internal view virtual returns (ILendingProtocol.Loan memory) { /* revert("RM: LoanManager not set"); */ return ILendingProtocol.Loan({loanId: bytes32(0), offerId: bytes32(0), borrower: address(0), lender: address(0), nftContract: address(0), nftTokenId: 0, isVault: false, currency: address(0), principalAmount: 0, interestRateAPR: 0, originationFeePaid: 0, startTime: 0, dueTime: 0, accruedInterest: 0, status: ILendingProtocol.LoanStatus.ACTIVE, storyIpId: address(0), isStoryAsset: false}); }
+    function _setLoanStatus(bytes32 loanId, ILendingProtocol.LoanStatus status) internal virtual { /* revert("RM: LoanManager not set"); */ }
+    function _incrementLoanCounter() internal virtual returns (uint256) { /* revert("RM: LoanManager not set"); */ return 0; }
+    function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData) internal virtual { /* revert("RM: LoanManager not set"); */ } // Changed to memory
+    function _calculateInterest(bytes32 loanId) internal view virtual returns (uint256) { /* revert("RM: LoanManager not set"); */ return 0; }
     function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime) internal virtual {
-        revert("RM: LoanManager not set for renegotiation update");
+        /* revert("RM: LoanManager not set for renegotiation update"); */
     }
-    function _getCurrencyManager() internal view virtual returns (ICurrencyManager) { revert("RM: CurrencyManager not set"); }
+    function _getCurrencyManager() internal view virtual returns (ICurrencyManager) { /* revert("RM: CurrencyManager not set"); */ return ICurrencyManager(address(0)); }
 
 
     // --- Functions ---

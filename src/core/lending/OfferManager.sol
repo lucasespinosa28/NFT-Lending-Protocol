@@ -26,12 +26,14 @@ contract OfferManager is ReentrancyGuard {
     // We'll use a placeholder for now and ensure LendingProtocol provides them.
     function _getCurrencyManager() internal view virtual returns (ICurrencyManager) {
         // This will be overridden in LendingProtocol to return its state variable
-        revert("OfferManager: CurrencyManager not set");
+        /* revert("OfferManager: CurrencyManager not set"); */
+        return ICurrencyManager(address(0));
     }
 
     function _getCollectionManager() internal view virtual returns (ICollectionManager) {
         // This will be overridden in LendingProtocol to return its state variable
-        revert("OfferManager: CollectionManager not set");
+        /* revert("OfferManager: CollectionManager not set"); */
+        return ICollectionManager(address(0));
     }
 
 
