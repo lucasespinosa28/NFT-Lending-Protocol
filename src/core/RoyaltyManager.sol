@@ -9,7 +9,7 @@ import {ILicenseTemplate} from "@storyprotocol/contracts/interfaces/modules/lice
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IRoyaltyManager} from "../interfaces/IRoyaltyManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockRoyaltyModule} from "../mocks/MockRoyaltyModule.sol"; // Added import
+import {RoyaltyModule} from "../RoyaltyModule.sol"; // Added import
 
 /**
  * @title RoyaltyManager
@@ -56,8 +56,8 @@ contract RoyaltyManager is IRoyaltyManager, Ownable {
 
         // Call Story Protocol's RoyaltyModule to collect tokens.
         // This function transfers the tokens to this contract (RoyaltyManager) and returns the amount.
-        // Cast to MockRoyaltyModule because collectRoyaltyTokens is not in the official IRoyaltyModule interface.
-        uint256 collectedAmount = MockRoyaltyModule(address(ROYALTY_MODULE)).collectRoyaltyTokens(ipId, currencyToken);
+        // Cast to RoyaltyModule because collectRoyaltyTokens is not in the official IRoyaltyModule interface.
+        uint256 collectedAmount = RoyaltyModule(address(ROYALTY_MODULE)).collectRoyaltyTokens(ipId, currencyToken);
 
         if (collectedAmount > 0) {
             ipaRoyaltyClaims[ipId][currencyToken] += collectedAmount;
