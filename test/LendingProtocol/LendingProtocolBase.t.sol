@@ -8,8 +8,6 @@ import {Vm} from "forge-std/Vm.sol";
 import {LendingProtocol} from "../../src/core/LendingProtocol.sol";
 import {CurrencyManager} from "../../src/core/CurrencyManager.sol";
 import {CollectionManager} from "../../src/core/CollectionManager.sol";
-import {Liquidation} from "../../src/core/Liquidation.sol";
-import {PurchaseBundler} from "../../src/core/PurchaseBundler.sol";
 import {RoyaltyManager} from "../../src/core/RoyaltyManager.sol";
 import {MockRoyaltyModule} from "../../src/mocks/MockRoyaltyModule.sol";
 import {MockIIPAssetRegistry} from "../../src/mocks/MockIIPAssetRegistry.sol";
@@ -26,8 +24,6 @@ contract LendingProtocolBaseTest is Test {
     LendingProtocol internal lendingProtocol;
     CurrencyManager internal currencyManager;
     CollectionManager internal collectionManager;
-    Liquidation internal liquidation;
-    PurchaseBundler internal purchaseBundler;
     RoyaltyManager internal royaltyManager;
     MockRoyaltyModule internal mockRoyaltyModule;
     MockIIPAssetRegistry internal mockIpAssetRegistry;
@@ -80,12 +76,7 @@ contract LendingProtocolBaseTest is Test {
         initialCollections[0] = address(mockNft);
         collectionManager = new CollectionManager(owner,initialCollections);
 
-        // 2. Deploy Liquidation and PurchaseBundler (these need LendingProtocol address, but LP needs them too)
-        // Deploy with address(0) for LP initially, then set LP address later.
-        liquidation = new Liquidation(address(0));
-        purchaseBundler = new PurchaseBundler(address(0));
-
-        // 3. Deploy LendingProtocol
+        // 2. Deploy PurchaseBundler (if needed, otherwise can be mocked)        // 3. Deploy LendingProtocol
         // Deploy new mock dependencies for RoyaltyManager and LendingProtocol
         mockIpAssetRegistry = new MockIIPAssetRegistry();
         mockRoyaltyModule = new MockRoyaltyModule();
@@ -101,15 +92,10 @@ contract LendingProtocolBaseTest is Test {
         lendingProtocol = new LendingProtocol(
             address(currencyManager),
             address(collectionManager),
-            address(liquidation),
-            address(purchaseBundler),
             address(royaltyManager), // Use deployed RoyaltyManager
             address(mockIpAssetRegistry) // Use deployed MockIIPAssetRegistry
         );
 
-        // 5. Set LendingProtocol address in Liquidation and PurchaseBundler
-        liquidation.setLendingProtocol(address(lendingProtocol));
-        purchaseBundler.setLendingProtocol(address(lendingProtocol));
 
         vm.stopPrank();
 

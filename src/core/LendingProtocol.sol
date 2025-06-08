@@ -49,22 +49,16 @@ contract LendingProtocol is
     constructor(
         address _currencyManager,
         address _collectionManager,
-        address _liquidationContract,
-        address _purchaseBundler,
         address _royaltyManager,
         address _ipAssetRegistry
     ) AdminManager() { // Calls AdminManager's constructor which calls Ownable(msg.sender)
         require(_currencyManager != address(0), "LP: CurrencyManager zero address");
         require(_collectionManager != address(0), "LP: CollectionManager zero address");
-        require(_liquidationContract != address(0), "LP: LiquidationContract zero address");
-        require(_purchaseBundler != address(0), "LP: PurchaseBundler zero address");
         require(_royaltyManager != address(0), "LP: RoyaltyManager zero address");
         require(_ipAssetRegistry != address(0), "LP: IPAssetRegistry zero address");
 
         currencyManager = ICurrencyManager(_currencyManager);
         collectionManager = ICollectionManager(_collectionManager);
-        liquidationContract = ILiquidation(_liquidationContract);
-        purchaseBundler = IPurchaseBundler(_purchaseBundler);
         royaltyManager = IRoyaltyManager(_royaltyManager);
         ipAssetRegistry = IIPAssetRegistry(_ipAssetRegistry);
     }

@@ -7,8 +7,6 @@ import {Script, console} from "forge-std/Script.sol";
 import {LendingProtocol} from "../src/core/LendingProtocol.sol";
 import {CurrencyManager} from "../src/core/CurrencyManager.sol";
 import {CollectionManager} from "../src/core/CollectionManager.sol";
-import {Liquidation} from "../src/core/Liquidation.sol";
-import {PurchaseBundler} from "../src/core/PurchaseBundler.sol";
 import {RangeValidator} from "../src/core/RangeValidator.sol";
 import {Stash} from "../src/core/Stash.sol";
 
@@ -25,8 +23,6 @@ import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/I
 contract DeployProtocol is Script {
     CurrencyManager currencyManager;
     CollectionManager collectionManager;
-    Liquidation liquidation;
-    PurchaseBundler purchaseBundler;
     RangeValidator rangeValidator;
     // Stash stash; // Deploy if needed for specific collections
     LendingProtocol lendingProtocol;
@@ -43,9 +39,7 @@ contract DeployProtocol is Script {
         returns (
             LendingProtocol,
             CurrencyManager,
-            CollectionManager,
-            Liquidation,
-            PurchaseBundler
+            CollectionManager
         )
     {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -119,32 +113,15 @@ contract DeployProtocol is Script {
         // - D.setMainContract(MainContractAddress)
         // - E.setMainContract(MainContractAddress)
 
-        // Let's stick to LP taking dependencies in constructor.
-        // Liquidation and PurchaseBundler will be deployed first.
-        // They will need a `setLendingProtocol` function, which they have.
-        // So, deploy them, then deploy LP with their addresses, then call setLendingProtocol on them.
-
-        liquidation = new Liquidation(address(0)); // Deploy with temp address(0) for LP
-        console.log("Deployed Liquidation at:", address(liquidation));
-
-        purchaseBundler = new PurchaseBundler(address(0)); // Deploy with temp address(0) for LP
-        console.log("Deployed PurchaseBundler at:", address(purchaseBundler));
 
         lendingProtocol = new LendingProtocol(
             address(currencyManager),
             address(collectionManager),
-            address(liquidation),
-            address(purchaseBundler),
             address(royaltyManager),
             address(ipAssetRegistry)
         );
         console.log("Deployed LendingProtocol at:", address(lendingProtocol));
 
-        // Now set the LendingProtocol address in Liquidation and PurchaseBundler
-        liquidation.setLendingProtocol(address(lendingProtocol));
-        console.log("Set LendingProtocol on Liquidation contract");
-        purchaseBundler.setLendingProtocol(address(lendingProtocol));
-        console.log("Set LendingProtocol on PurchaseBundler contract");
 
         // Transfer ownership of ownable contracts to a Gnosis Safe or a governance contract
         // address multisig = address(0x...); // Your multisig/governance address
@@ -154,6 +131,6 @@ contract DeployProtocol is Script {
 
         vm.stopBroadcast();
 
-        return (lendingProtocol, currencyManager, collectionManager, liquidation, purchaseBundler);
+        return (lendingProtocol, currencyManager, collectionManager);
     }
 }
