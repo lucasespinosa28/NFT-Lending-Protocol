@@ -51,6 +51,14 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
     function _getLoanOffer(bytes32 offerId) internal view virtual returns (ILendingProtocol.LoanOffer memory) { /* revert("LM: OfferManager not set"); */ return ILendingProtocol.LoanOffer({offerId: bytes32(0), lender: address(0), offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(0), nftTokenId: 0, currency: address(0), principalAmount: 0, interestRateAPR: 0, durationSeconds: 0, expirationTimestamp: 0, originationFeeRate: 0, maxSeniorRepayment: 0, totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0, isActive: true}); }
     function _setLoanOfferInactive(bytes32 offerId) internal virtual { /* revert("LM: OfferManager not set"); */ }
 
+    // --- Virtual functions for RequestManager interaction (to be implemented by LendingProtocol) ---
+    function _getLoanRequest(bytes32 requestId) internal view virtual returns (ILendingProtocol.LoanRequest memory) {
+        revert("LM: Bridge for getLoanRequest not implemented");
+    }
+
+    function _setLoanRequestInactive(bytes32 requestId) internal virtual {
+        revert("LM: Bridge for _setLoanRequestInactive not implemented");
+    }
 
     // --- Functions ---
 
@@ -320,6 +328,92 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
     }
 
     // --- Internal functions for other Managers (via LendingProtocol) ---
+
+    function acceptLoanRequest(bytes32 requestId)
+        public
+        virtual
+        nonReentrant
+        returns (bytes32 loanId)
+    {
+        ILendingProtocol.LoanRequest memory request = _getLoanRequest(requestId); // Fetches from RequestManager via LendingProtocol
+
+        require(request.isActive, "LM: Loan request not active");
+        require(request.expirationTimestamp > block.timestamp, "LM: Loan request expired");
+        require(msg.sender != request.borrower, "LM: Lender cannot be borrower");
+        // Ensure currency is supported (though request creation should check this, good to double check if currencyManager is accessible)
+        // ICurrencyManager currencyManager = _getCurrencyManager();
+        // require(currencyManager.isCurrencySupported(request.currency), "LM: Currency not supported");
+
+
+        // Check NFT ownership by the borrower
+        require(IERC721(request.nftContract).ownerOf(request.nftTokenId) == request.borrower, "LM: Borrower not NFT owner");
+
+        // Check if LendingProtocol contract is approved to transfer the NFT
+        // address(this) is the LoanManager instance, which is part of LendingProtocol
+        require(IERC721(request.nftContract).getApproved(request.nftTokenId) == address(this) ||
+                IERC721(request.nftContract).isApprovedForAll(request.borrower, address(this)),
+                "LM: LendingProtocol not approved for NFT transfer");
+
+        // Transfer NFT from borrower to this contract (LendingProtocol)
+        IERC721(request.nftContract).safeTransferFrom(request.borrower, address(this), request.nftTokenId);
+
+        // Increment loan counter (inherited or via bridge)
+        loanCounter = _incrementLoanCounter(); // Ensure this is available/correctly inherited
+        loanId = keccak256(abi.encodePacked("loan", loanCounter, request.borrower, requestId)); // Unique loanId
+
+        uint64 startTime = uint64(block.timestamp);
+        uint64 dueTime = startTime + uint64(request.durationSeconds);
+        // For simplicity, origination fee is not included in borrower requests for now, can be added later.
+        uint256 originationFee = 0; // (request.principalAmount * 0) / 10000; // Example if there was a fee rate
+
+        loans[loanId] = ILendingProtocol.Loan({
+            loanId: loanId,
+            offerId: requestId, // Store requestId here; could rename field or use a union if OfferId vs RequestId matters elsewhere
+            borrower: request.borrower,
+            lender: msg.sender, // The one accepting the request is the lender
+            nftContract: request.nftContract,
+            nftTokenId: request.nftTokenId,
+            isVault: false, // Assuming direct NFT loans, not vaults
+            currency: request.currency,
+            principalAmount: request.principalAmount,
+            interestRateAPR: request.interestRateAPR,
+            originationFeePaid: originationFee,
+            startTime: startTime,
+            dueTime: dueTime,
+            accruedInterest: 0,
+            status: ILendingProtocol.LoanStatus.ACTIVE,
+            storyIpId: address(0), // Assuming not a Story Protocol asset by default for requests
+            isStoryAsset: false    // ^
+        });
+
+        // Mark the loan request as inactive
+        _setLoanRequestInactive(requestId); // Calls RequestManager._setLoanRequestInactive via LendingProtocol
+
+        // Transfer principal from lender (msg.sender) to borrower
+        // Lender must have approved the currency transfer to this contract (LendingProtocol)
+        // Or, lender sends funds with the call (if payable, but currency is ERC20)
+        // For ERC20, standard is lender approves protocol, protocol transfersFrom.
+        IERC20(request.currency).safeTransferFrom(msg.sender, request.borrower, request.principalAmount);
+        // If origination fee was > 0 and paid to lender/protocol:
+        // IERC20(request.currency).safeTransferFrom(msg.sender, feeAddress, originationFee);
+
+        // Emit an event similar to OfferAccepted.
+        // Re-using OfferAccepted event. Note: offerId in event is actually requestId.
+        emit ILendingProtocol.OfferAccepted(
+            loanId,
+            requestId, // This is the loan request ID
+            request.borrower,
+            msg.sender, // Lender
+            request.nftContract,
+            request.nftTokenId,
+            request.currency,
+            request.principalAmount,
+            dueTime
+        );
+        // A more specific LoanRequestAccepted event is defined in ILendingProtocol and should be emitted by LendingProtocol layer
+
+        return loanId;
+    }
 
     function _setLoanStatus(bytes32 loanId, ILendingProtocol.LoanStatus status) internal virtual {
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected

@@ -102,6 +102,29 @@ interface ILendingProtocol {
         bool isStoryAsset; // True if the underlying collateral is a Story Protocol registered asset
     }
 
+    struct LoanRequestParams {
+        address nftContract;         // Contract address of the NFT to be used as collateral
+        uint256 nftTokenId;          // Token ID of the NFT
+        address currency;            // Address of the desired loan currency (ERC20 token)
+        uint256 principalAmount;     // Desired principal amount of the loan
+        uint256 interestRateAPR;     // Desired annual percentage rate (e.g., 500 for 5.00%)
+        uint256 durationSeconds;       // Desired duration of the loan in seconds
+        uint64 expirationTimestamp;   // Timestamp when this loan request expires
+    }
+
+    struct LoanRequest {
+        bytes32 requestId;           // Unique ID for the loan request
+        address borrower;            // Address of the borrower
+        address nftContract;         // Contract address of the NFT collateral
+        uint256 nftTokenId;          // Token ID of the NFT collateral
+        address currency;            // Address of the loan currency
+        uint256 principalAmount;     // Principal amount requested
+        uint256 interestRateAPR;     // Interest rate requested (APR)
+        uint256 durationSeconds;       // Duration of the loan requested
+        uint64 expirationTimestamp;   // Timestamp when this request expires
+        bool isActive;               // Flag indicating if the request is still active
+    }
+
     // --- Events ---
 
     /**
@@ -264,6 +287,35 @@ interface ILendingProtocol {
         uint256 amountToRepayLoan
     );
 
+    event LoanRequestMade(
+        bytes32 indexed requestId,
+        address indexed borrower,
+        address indexed nftContract,
+        uint256 nftTokenId,
+        address currency,
+        uint256 principalAmount,
+        uint256 interestRateAPR,
+        uint256 durationSeconds,
+        uint64 expirationTimestamp
+    );
+
+    event LoanRequestCancelled(
+        bytes32 indexed requestId,
+        address indexed borrower
+    );
+
+    event LoanRequestAccepted(
+        bytes32 indexed requestId,
+        bytes32 indexed loanId,
+        address indexed lender,
+        address borrower,
+        address nftContract,
+        uint256 nftTokenId,
+        address currency,
+        uint256 principalAmount,
+        uint64 dueTime
+    );
+
     // --- Functions ---
 
     /**
@@ -423,4 +475,9 @@ interface ILendingProtocol {
      * @param interestRepaid The amount of interest repaid.
      */
     function recordLoanRepaymentViaSale(bytes32 loanId, uint256 principalRepaid, uint256 interestRepaid) external;
+
+    function makeLoanRequest(LoanRequestParams calldata params) external returns (bytes32 requestId);
+    function cancelLoanRequest(bytes32 requestId) external;
+    function getLoanRequest(bytes32 requestId) external view returns (LoanRequest memory);
+    function acceptLoanRequest(bytes32 requestId) external returns (bytes32 loanId);
 }
