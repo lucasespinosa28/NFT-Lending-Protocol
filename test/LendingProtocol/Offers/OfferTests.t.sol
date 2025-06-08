@@ -133,7 +133,64 @@ contract OfferTests is LendingProtocolBaseTest {
         vm.stopPrank();
     }
 
-    // TODO: Add test_CancelLoanOffer_Success if applicable from original or new tests
-    // function test_CancelLoanOffer_Success() public { ... }
-    // function test_Fail_CancelLoanOffer_NotOwner() public { ... }
+    // --- Helper function to create a standard offer for cancellation tests ---
+    function _createStandardOfferForCancelTest() internal returns (bytes32 offerId) {
+        vm.startPrank(lender);
+        uint64 expiration = uint64(block.timestamp + 1 days);
+        ILendingProtocol.OfferParams memory params = ILendingProtocol.OfferParams({
+            offerType: ILendingProtocol.OfferType.STANDARD,
+            nftContract: address(mockNft),
+            nftTokenId: BORROWER_NFT_ID, // Assuming BORROWER_NFT_ID is defined in base
+            currency: address(weth),
+            principalAmount: 1 ether,
+            interestRateAPR: 500,
+            durationSeconds: 7 days,
+            expirationTimestamp: expiration,
+            originationFeeRate: 100,
+            totalCapacity: 0,
+            maxPrincipalPerLoan: 0,
+            minNumberOfLoans: 0
+        });
+        offerId = lendingProtocol.makeLoanOffer(params);
+        vm.stopPrank();
+    }
+
+    // --- CancelLoanOffer Tests ---
+
+    function test_CancelLoanOffer_Success() public {
+        // 1. Create an offer
+        bytes32 offerId = _createStandardOfferForCancelTest();
+        assertTrue(lendingProtocol.getLoanOffer(offerId).isActive, "Offer should be active initially");
+
+        // 2. Lender cancels the offer
+        vm.startPrank(lender);
+        vm.expectEmit(true, true, true, true, address(lendingProtocol));
+        emit ILendingProtocol.OfferCancelled(offerId, lender);
+        lendingProtocol.cancelLoanOffer(offerId);
+        vm.stopPrank();
+
+        // 3. Verify offer is inactive
+        ILendingProtocol.LoanOffer memory offer = lendingProtocol.getLoanOffer(offerId);
+        assertFalse(offer.isActive, "Offer should be inactive after cancellation");
+    }
+
+    function test_Fail_CancelLoanOffer_NotOwner() public {
+        // 1. Create an offer by 'lender'
+        bytes32 offerId = _createStandardOfferForCancelTest();
+        assertTrue(lendingProtocol.getLoanOffer(offerId).isActive, "Offer should be active initially");
+
+        // 2. 'otherUser' (not the offer owner) attempts to cancel
+        vm.startPrank(otherUser);
+        vm.expectRevert(bytes("Not offer owner"));
+        lendingProtocol.cancelLoanOffer(offerId);
+        vm.stopPrank();
+
+        // 3. Verify offer is still active
+        ILendingProtocol.LoanOffer memory offer = lendingProtocol.getLoanOffer(offerId);
+        assertTrue(offer.isActive, "Offer should still be active");
+    }
+
+    // TODO: Consider adding test_Fail_CancelLoanOffer_AlreadyInactive if not implicitly covered
+    // e.g., cancelling an offer that was already accepted or already cancelled.
+    // The current check `require(offer.isActive, "Offer not active");` covers this.
 }

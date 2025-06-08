@@ -27,6 +27,17 @@ contract LendingProtocol is
     RefinanceManager,
     AdminManager
 {
+    // Re-define event here to resolve emit scoping issues
+    event LoanRenegotiationProposed(
+        bytes32 indexed proposalId,
+        bytes32 indexed loanId,
+        address indexed proposer,
+        address borrower,
+        uint256 proposedPrincipal,
+        uint256 proposedAPR,
+        uint256 proposedDuration
+    );
+
     ICurrencyManager public currencyManager;
     ICollectionManager public collectionManager;
     IVaultsFactory public vaultsFactory;
@@ -110,7 +121,7 @@ contract LendingProtocol is
 
     // Bridge for RefinanceManager to access LoanManager's internal _setLoanStatus
     function _setLoanStatus(bytes32 loanId, ILendingProtocol.LoanStatus status) internal override(RefinanceManager, LoanManager) {
-        super._setLoanStatus(loanId, status); // Calls LoanManager._setLoanStatus()
+        LoanManager._setLoanStatus(loanId, status); // Explicitly call LoanManager's implementation
     }
 
     // Bridge for RefinanceManager to access LoanManager's internal _incrementLoanCounter
@@ -120,7 +131,7 @@ contract LendingProtocol is
 
     // Bridge for RefinanceManager to access LoanManager's internal _addLoan
     function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData) internal override(RefinanceManager, LoanManager) { // memory
-        super._addLoan(loanId, loanData); // Calls LoanManager._addLoan()
+        LoanManager._addLoan(loanId, loanData); // Explicitly call LoanManager's implementation
     }
 
     // Bridge for RefinanceManager to access LoanManager's public calculateInterest
@@ -130,7 +141,7 @@ contract LendingProtocol is
 
     // Bridge for RefinanceManager to access LoanManager's internal _updateLoanAfterRenegotiation
     function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime) internal override(RefinanceManager, LoanManager) {
-        super._updateLoanAfterRenegotiation(loanId, newPrincipal, newAPR, newDueTime); // Calls LoanManager._updateLoanAfterRenegotiation()
+        LoanManager._updateLoanAfterRenegotiation(loanId, newPrincipal, newAPR, newDueTime); // Explicitly call LoanManager's implementation
     }
 
     // --- AdminManager setter implementations ---
@@ -170,8 +181,19 @@ contract LendingProtocol is
         return super.refinanceLoan(existingLoanId, newPrincipalAmount, newInterestRateAPR, newDurationSeconds, newOriginationFeeRate);
     }
 
-    function proposeRenegotiation( bytes32 loanId, uint256 proposedPrincipalAmount, uint256 proposedInterestRateAPR, uint256 proposedDurationSeconds) public override(ILendingProtocol, RefinanceManager) returns (bytes32 proposalId) {
-        return super.proposeRenegotiation(loanId, proposedPrincipalAmount, proposedInterestRateAPR, proposedDurationSeconds);
+    function proposeRenegotiation( bytes32 loanId, uint256 proposedPrincipalAmount, uint256 proposedInterestRateAPR, uint256 proposedDurationSeconds) public override(ILendingProtocol, RefinanceManager) returns (bytes32 newProposalId) {
+        newProposalId = super.proposeRenegotiation(loanId, proposedPrincipalAmount, proposedInterestRateAPR, proposedDurationSeconds);
+        ILendingProtocol.Loan memory loan = this.getLoan(loanId);
+        emit LoanRenegotiationProposed( // Use locally defined event
+            newProposalId,
+            loanId,
+            msg.sender,
+            loan.borrower,
+            proposedPrincipalAmount,
+            proposedInterestRateAPR,
+            proposedDurationSeconds
+        );
+        // newProposalId is already returned by the assignment from super call.
     }
 
     function acceptRenegotiation(bytes32 proposalId) public override(ILendingProtocol, RefinanceManager) {
