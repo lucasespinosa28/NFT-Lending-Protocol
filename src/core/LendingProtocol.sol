@@ -14,7 +14,6 @@ import {AdminManager} from "./lending/AdminManager.sol";
 // Interfaces for state variables
 import {ICurrencyManager} from "../interfaces/ICurrencyManager.sol";
 import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
-import {IVaultsFactory} from "../interfaces/IVaultsFactory.sol";
 import {ILiquidation} from "../interfaces/ILiquidation.sol";
 import {IPurchaseBundler} from "../interfaces/IPurchaseBundler.sol";
 import {IRoyaltyManager} from "../interfaces/IRoyaltyManager.sol";
@@ -40,7 +39,6 @@ contract LendingProtocol is
 
     ICurrencyManager public currencyManager;
     ICollectionManager public collectionManager;
-    IVaultsFactory public vaultsFactory;
     ILiquidation public liquidationContract;
     IPurchaseBundler public purchaseBundler;
     IRoyaltyManager public royaltyManager;
@@ -49,7 +47,6 @@ contract LendingProtocol is
     constructor(
         address _currencyManager,
         address _collectionManager,
-        address _vaultsFactory,
         address _liquidationContract,
         address _purchaseBundler,
         address _royaltyManager,
@@ -64,9 +61,6 @@ contract LendingProtocol is
 
         currencyManager = ICurrencyManager(_currencyManager);
         collectionManager = ICollectionManager(_collectionManager);
-        if (_vaultsFactory != address(0)) {
-            vaultsFactory = IVaultsFactory(_vaultsFactory);
-        }
         liquidationContract = ILiquidation(_liquidationContract);
         purchaseBundler = IPurchaseBundler(_purchaseBundler);
         royaltyManager = IRoyaltyManager(_royaltyManager);
@@ -85,11 +79,6 @@ contract LendingProtocol is
     // For OfferManager, LoanManager
     function _getCollectionManager() internal view override(OfferManager, LoanManager) returns (ICollectionManager) {
         return collectionManager;
-    }
-
-    // For LoanManager
-    function _getVaultsFactory() internal view override(LoanManager) returns (IVaultsFactory) {
-        return vaultsFactory;
     }
 
     function _getIpAssetRegistry() internal view override(LoanManager) returns (IIPAssetRegistry) {
@@ -147,7 +136,6 @@ contract LendingProtocol is
     // --- AdminManager setter implementations ---
     function _setCurrencyManager(ICurrencyManager newManager) internal override(AdminManager) { currencyManager = newManager; }
     function _setCollectionManager(ICollectionManager newManager) internal override(AdminManager) { collectionManager = newManager; }
-    function _setVaultsFactory(IVaultsFactory newFactory) internal override(AdminManager) { vaultsFactory = newFactory; }
     function _setLiquidationContract(ILiquidation newContract) internal override(AdminManager) { liquidationContract = newContract; }
     function _setPurchaseBundler(IPurchaseBundler newBundler) internal override(AdminManager) { purchaseBundler = newBundler; }
     function _setRoyaltyManager(IRoyaltyManager newManager) internal override(AdminManager) { royaltyManager = newManager; }

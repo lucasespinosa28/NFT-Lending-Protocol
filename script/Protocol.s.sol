@@ -7,7 +7,6 @@ import {Script, console} from "forge-std/Script.sol";
 import {LendingProtocol} from "../src/core/LendingProtocol.sol";
 import {CurrencyManager} from "../src/core/CurrencyManager.sol";
 import {CollectionManager} from "../src/core/CollectionManager.sol";
-import {VaultsFactory} from "../src/core/VaultsFactory.sol";
 import {Liquidation} from "../src/core/Liquidation.sol";
 import {PurchaseBundler} from "../src/core/PurchaseBundler.sol";
 import {RangeValidator} from "../src/core/RangeValidator.sol";
@@ -26,7 +25,6 @@ import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/I
 contract DeployProtocol is Script {
     CurrencyManager currencyManager;
     CollectionManager collectionManager;
-    VaultsFactory vaultsFactory;
     Liquidation liquidation;
     PurchaseBundler purchaseBundler;
     RangeValidator rangeValidator;
@@ -46,7 +44,6 @@ contract DeployProtocol is Script {
             LendingProtocol,
             CurrencyManager,
             CollectionManager,
-            VaultsFactory, // Can be address(0) if not used
             Liquidation,
             PurchaseBundler
         )
@@ -82,9 +79,6 @@ contract DeployProtocol is Script {
         rangeValidator = new RangeValidator(); // Basic validator
         console.log("Deployed RangeValidator at:", address(rangeValidator));
 
-        // 3. Deploy VaultsFactory (optional, can be address(0) if not used initially)
-        vaultsFactory = new VaultsFactory("NFT Vault Shares", "NVS");
-        console.log("Deployed VaultsFactory at:", address(vaultsFactory));
 
         // 4. Deploy Liquidation and PurchaseBundler (these need LendingProtocol address, but LP needs them too - chicken/egg)
         // Temporary: Deploy them, then set addresses later, or deploy LP first and then set its dependencies.
@@ -139,7 +133,6 @@ contract DeployProtocol is Script {
         lendingProtocol = new LendingProtocol(
             address(currencyManager),
             address(collectionManager),
-            address(vaultsFactory),
             address(liquidation),
             address(purchaseBundler),
             address(royaltyManager),
@@ -161,6 +154,6 @@ contract DeployProtocol is Script {
 
         vm.stopBroadcast();
 
-        return (lendingProtocol, currencyManager, collectionManager, vaultsFactory, liquidation, purchaseBundler);
+        return (lendingProtocol, currencyManager, collectionManager, liquidation, purchaseBundler);
     }
 }

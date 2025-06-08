@@ -11,7 +11,6 @@ contract InitialSetupTests is LendingProtocolBaseTest {
         assertTrue(address(mockNft) != address(0), "MockNFT not deployed");
         assertTrue(address(currencyManager) != address(0), "CurrencyManager not deployed");
         assertTrue(address(collectionManager) != address(0), "CollectionManager not deployed");
-        assertTrue(address(vaultsFactory) != address(0), "VaultsFactory not deployed");
         assertTrue(address(liquidation) != address(0), "Liquidation not deployed");
         assertTrue(address(purchaseBundler) != address(0), "PurchaseBundler not deployed");
         assertTrue(address(royaltyManager) != address(0), "RoyaltyManager not deployed");

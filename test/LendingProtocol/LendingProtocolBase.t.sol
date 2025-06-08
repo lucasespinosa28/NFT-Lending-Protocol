@@ -8,7 +8,6 @@ import {Vm} from "forge-std/Vm.sol";
 import {LendingProtocol} from "../../src/core/LendingProtocol.sol";
 import {CurrencyManager} from "../../src/core/CurrencyManager.sol";
 import {CollectionManager} from "../../src/core/CollectionManager.sol";
-import {VaultsFactory} from "../../src/core/VaultsFactory.sol";
 import {Liquidation} from "../../src/core/Liquidation.sol";
 import {PurchaseBundler} from "../../src/core/PurchaseBundler.sol";
 import {RoyaltyManager} from "../../src/core/RoyaltyManager.sol";
@@ -27,7 +26,6 @@ contract LendingProtocolBaseTest is Test {
     LendingProtocol internal lendingProtocol;
     CurrencyManager internal currencyManager;
     CollectionManager internal collectionManager;
-    VaultsFactory internal vaultsFactory;
     Liquidation internal liquidation;
     PurchaseBundler internal purchaseBundler;
     RoyaltyManager internal royaltyManager;
@@ -82,15 +80,12 @@ contract LendingProtocolBaseTest is Test {
         initialCollections[0] = address(mockNft);
         collectionManager = new CollectionManager(owner,initialCollections);
 
-        // 2. Deploy VaultsFactory (optional, can be address(0) if not used initially)
-        vaultsFactory = new VaultsFactory("NFT Vault Shares Test", "NVST");
-
-        // 3. Deploy Liquidation and PurchaseBundler (these need LendingProtocol address, but LP needs them too)
+        // 2. Deploy Liquidation and PurchaseBundler (these need LendingProtocol address, but LP needs them too)
         // Deploy with address(0) for LP initially, then set LP address later.
         liquidation = new Liquidation(address(0));
         purchaseBundler = new PurchaseBundler(address(0));
 
-        // 4. Deploy LendingProtocol
+        // 3. Deploy LendingProtocol
         // Deploy new mock dependencies for RoyaltyManager and LendingProtocol
         mockIpAssetRegistry = new MockIIPAssetRegistry();
         mockRoyaltyModule = new MockRoyaltyModule();
@@ -106,7 +101,6 @@ contract LendingProtocolBaseTest is Test {
         lendingProtocol = new LendingProtocol(
             address(currencyManager),
             address(collectionManager),
-            address(vaultsFactory),
             address(liquidation),
             address(purchaseBundler),
             address(royaltyManager), // Use deployed RoyaltyManager

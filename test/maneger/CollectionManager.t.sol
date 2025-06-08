@@ -2,8 +2,8 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
-import "../src/core/CollectionManager.sol";
-import {MockERC721} from "./mocks/MockERC721.sol";
+import "../../src/core/CollectionManager.sol";
+import {MockERC721} from "../mocks/MockERC721.sol";
 
 contract CollectionManagerTest is Test {
     CollectionManager public manager;

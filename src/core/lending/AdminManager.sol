@@ -5,10 +5,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-
 import {ICurrencyManager} from "../../interfaces/ICurrencyManager.sol";
 import {ICollectionManager} from "../../interfaces/ICollectionManager.sol";
-import {IVaultsFactory} from "../../interfaces/IVaultsFactory.sol";
 import {ILiquidation} from "../../interfaces/ILiquidation.sol";
 import {IPurchaseBundler} from "../../interfaces/IPurchaseBundler.sol";
 import {IRoyaltyManager} from "../../interfaces/IRoyaltyManager.sol";
@@ -35,7 +33,6 @@ contract AdminManager is Ownable {
 
     function _setCurrencyManager(ICurrencyManager newManager) internal virtual { revert("AM: Not implemented"); }
     function _setCollectionManager(ICollectionManager newManager) internal virtual { revert("AM: Not implemented"); }
-    function _setVaultsFactory(IVaultsFactory newFactory) internal virtual { revert("AM: Not implemented"); }
     function _setLiquidationContract(ILiquidation newContract) internal virtual { revert("AM: Not implemented"); }
     function _setPurchaseBundler(IPurchaseBundler newBundler) internal virtual { revert("AM: Not implemented"); }
     function _setRoyaltyManager(IRoyaltyManager newManager) internal virtual { revert("AM: Not implemented"); }
@@ -60,15 +57,6 @@ contract AdminManager is Ownable {
     function setCollectionManager(address newManager) external onlyOwner {
         require(newManager != address(0), "zero address");
         _setCollectionManager(ICollectionManager(newManager));
-    }
-
-    /**
-     * @notice Sets a new VaultsFactory contract address.
-     * @param newFactory The address of the new VaultsFactory.
-     */
-    function setVaultsFactory(address newFactory) external onlyOwner {
-        // Allow address(0) to remove factory
-        _setVaultsFactory(IVaultsFactory(newFactory));
     }
 
     /**

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../src/core/CurrencyManager.sol";
-import "../src/mocks/ERC20Mock.sol";
+import "../../src/core/CurrencyManager.sol";
+import "../../src/mocks/ERC20Mock.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol"; // For Ownable errors
 
 contract CurrencyManagerTest is Test {

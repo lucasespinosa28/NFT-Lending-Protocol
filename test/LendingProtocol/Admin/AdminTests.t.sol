@@ -8,16 +8,6 @@ import {ERC721Mock} from "../../../src/mocks/ERC721Mock.sol"; // For emergency w
 import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract AdminTests is LendingProtocolBaseTest {
-    // TODO: Add tests for administrative functions
-    // - test_SetCurrencyManager_Success (example, if direct testing is desired)
-    // - test_Fail_SetCurrencyManager_NotOwner
-    // - test_EmergencyWithdrawERC20_Success
-    // - test_Fail_EmergencyWithdrawERC20_NotOwner
-    // - test_EmergencyWithdrawERC721_Success
-    // - test_Fail_EmergencyWithdrawERC721_NotOwner
-    // - test_EmergencyWithdrawNative_Success
-    // - test_Fail_EmergencyWithdrawNative_NotOwner
-
     address internal newCurrencyManagerAddr;
 
     function setUp() public override {

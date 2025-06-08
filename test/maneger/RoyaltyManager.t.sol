@@ -2,11 +2,11 @@
 pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
-import "../src/core/RoyaltyManager.sol";
-import "../src/mocks/ERC721Mock.sol";
-import "../src/mocks/MockIIPAssetRegistry.sol";
-import "../src/mocks/MockRoyaltyModule.sol"; // Added import
-import "../src/mocks/ERC20Mock.sol"; // Added import
+import "../../src/core/RoyaltyManager.sol";
+import "../../src/mocks/ERC721Mock.sol";
+import "../../src/mocks/MockIIPAssetRegistry.sol";
+import "../../src/mocks/MockRoyaltyModule.sol"; // Added import
+import "../../src/mocks/ERC20Mock.sol"; // Added import
 import "@storyprotocol/contracts/interfaces/registries/IIPAssetRegistry.sol";
 import "@storyprotocol/contracts/interfaces/modules/royalty/IRoyaltyModule.sol";
 import "@storyprotocol/contracts/interfaces/modules/licensing/ILicensingModule.sol";

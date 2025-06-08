@@ -4,7 +4,6 @@ pragma solidity 0.8.26;
 import {ILendingProtocol} from "../../interfaces/ILendingProtocol.sol"; // Corrected import
 import {ICurrencyManager} from "../../interfaces/ICurrencyManager.sol";
 import {ICollectionManager} from "../../interfaces/ICollectionManager.sol";
-import {IVaultsFactory} from "../../interfaces/IVaultsFactory.sol";
 import {IRoyaltyManager} from "../../interfaces/IRoyaltyManager.sol";
 import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/IIPAssetRegistry.sol";
 import {IPurchaseBundler} from "../../interfaces/IPurchaseBundler.sol";
@@ -46,7 +45,6 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
     // These functions will be overridden in LendingProtocol to return its state variables.
     function _getCurrencyManager() internal view virtual returns (ICurrencyManager) { /* revert("LM: CurrencyManager not set"); */ return ICurrencyManager(address(0)); }
     function _getCollectionManager() internal view virtual returns (ICollectionManager) { /* revert("LM: CollectionManager not set"); */ return ICollectionManager(address(0)); }
-    function _getVaultsFactory() internal view virtual returns (IVaultsFactory) { /* revert("LM: VaultsFactory not set"); */ return IVaultsFactory(address(0)); }
     function _getIpAssetRegistry() internal view virtual returns (IIPAssetRegistry) { /* revert("LM: IPAssetRegistry not set"); */ return IIPAssetRegistry(address(0)); }
     function _getRoyaltyManager() internal view virtual returns (IRoyaltyManager) { /* revert("LM: RoyaltyManager not set"); */ return IRoyaltyManager(address(0)); }
     function _getPurchaseBundler() internal view virtual returns (IPurchaseBundler) { /* revert("LM: PurchaseBundler not set"); */ return IPurchaseBundler(address(0)); }
@@ -69,7 +67,6 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
 
         ICurrencyManager currencyManager = _getCurrencyManager();
         ICollectionManager collectionManager = _getCollectionManager();
-        IVaultsFactory vaultsFactory = _getVaultsFactory();
         IIPAssetRegistry ipAssetRegistry = _getIpAssetRegistry();
 
         address underlyingCollateralContract;
@@ -98,17 +95,11 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
 
         address effectiveCollateralContract = underlyingCollateralContract;
         uint256 effectiveCollateralTokenId = underlyingCollateralTokenId;
-        bool isCollateralVault = false;
 
-        if (address(vaultsFactory) != address(0) && vaultsFactory.isVault(effectiveCollateralTokenId)) {
-            require(vaultsFactory.ownerOfVault(effectiveCollateralTokenId) == msg.sender, "Not vault owner");
-            isCollateralVault = true;
-            effectiveCollateralContract = address(vaultsFactory);
-        } else {
-            require(
-                IERC721(effectiveCollateralContract).ownerOf(effectiveCollateralTokenId) == msg.sender, "Not NFT owner"
-            );
-        }
+        // Removed vaultsFactory logic, only standard NFT collateral supported
+        require(
+            IERC721(effectiveCollateralContract).ownerOf(effectiveCollateralTokenId) == msg.sender, "Not NFT owner"
+        );
 
         IERC721(effectiveCollateralContract).safeTransferFrom(msg.sender, address(this), effectiveCollateralTokenId);
 
@@ -125,7 +116,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
             lender: offer.lender,
             nftContract: effectiveCollateralContract,
             nftTokenId: effectiveCollateralTokenId,
-            isVault: isCollateralVault,
+            isVault: false, // Always false, vaults not supported
             currency: offer.currency,
             principalAmount: offer.principalAmount,
             interestRateAPR: offer.interestRateAPR,
