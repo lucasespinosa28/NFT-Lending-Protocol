@@ -13,7 +13,7 @@ The platform aims to unlock liquidity for creators and owners of story IPs by al
 ## Key Features
 
 - **NFT as Collateral:** Users can lock their story IP NFTs in smart contracts to borrow stablecoins or other cryptocurrencies.
-- **Loan Origination:** Lenders can offer loans with specific terms (interest rate, duration, loan-to-value ratio) or contribute to liquidity pools.
+- **Loan Origination:** Lenders can offer loans with specific terms (interest rate, duration, loan-to-value ratio)
 - **Interest Accrual:** Interest is accrued over the loan period, payable by the borrower.
 - **Liquidation:** If a borrower defaults on their loan (e.g., fails to repay within the agreed timeframe, or the collateral value drops significantly), the platform allows for the liquidation of the NFT to cover the outstanding debt.
 - **Story IP Focus:** The platform is specifically designed for NFTs representing rights to stories, scripts, characters, and other narrative-based intellectual property
@@ -33,11 +33,11 @@ Users might need to register on the platform.
 - A borrower lists their story IP NFT as collateral.
 - They specify the desired loan amount and may indicate preferred terms.
 
-### 4. Loan Offer (Lender) / Pool Lending
+### 4. Loan Offer (Lender)
 - **Peer-to-Peer:** Lenders can browse listed NFTs and make direct loan offers with specific interest rates and durations.
 
 ### 5. Loan Agreement
-- If a borrower accepts a lender's offer (or borrows from a pool), a smart contract locks the NFT and disburses the loan amount to the borrower.
+- If a borrower accepts a lender's offer, a smart contract locks the NFT and disburses the loan amount to the borrower.
 - The `LendingProtocol` contract checks if the collateral is a registered Story Protocol IP and stores its `storyIpId`.
 - The terms of the loan (principal, interest, maturity date, collateral ID) are recorded on the blockchain.
 
