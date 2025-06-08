@@ -149,6 +149,7 @@ contract RefinanceManager is ReentrancyGuard {
             accepted: false,
             exists: true
         });
+        // Event will be emitted by LendingProtocol contract
         return proposalId;
     }
 
