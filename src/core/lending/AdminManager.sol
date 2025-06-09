@@ -41,27 +41,27 @@ contract AdminManager is Ownable {
     // LendingProtocol will override these to provide access to its state.
 
     function _setCurrencyManager(ICurrencyManager) internal virtual {
-        revert("AM: Not implemented");
+        // revert("AM: Not implemented");
     }
 
     function _setCollectionManager(ICollectionManager) internal virtual {
-        revert("AM: Not implemented");
+        // revert("AM: Not implemented");
     }
 
     function _setLiquidationContract(ILiquidation) internal virtual {
-        revert("AM: Not implemented");
+        // revert("AM: Not implemented");
     }
 
     function _setPurchaseBundler(IPurchaseBundler) internal virtual {
-        revert("AM: Not implemented");
+        // revert("AM: Not implemented");
     }
 
     function _setRoyaltyManager(IRoyaltyManager) internal virtual {
-        revert("AM: Not implemented");
+        // revert("AM: Not implemented");
     }
 
     function _setIpAssetRegistry(IIPAssetRegistry) internal virtual {
-        revert("AM: Not implemented");
+        // revert("AM: Not implemented");
     }
 
     // --- Admin Functions ---

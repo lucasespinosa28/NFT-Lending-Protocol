@@ -17,11 +17,13 @@ contract RequestManager is ReentrancyGuard {
 
     // --- External Dependencies (to be provided by inheriting contract, e.g., LendingProtocol) ---
     function _getCurrencyManager() internal view virtual returns (ICurrencyManager) {
-        revert("RequestManager: CurrencyManager not set");
+        // revert("RequestManager: CurrencyManager not set");
+        return ICurrencyManager(address(0));
     }
 
     function _getCollectionManager() internal view virtual returns (ICollectionManager) {
-        revert("RequestManager: CollectionManager not set");
+        // revert("RequestManager: CollectionManager not set");
+        return ICollectionManager(address(0));
     }
 
     // --- Functions ---
