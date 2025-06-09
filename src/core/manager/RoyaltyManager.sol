@@ -7,9 +7,9 @@ import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/I
 import {ILicenseRegistry} from "@storyprotocol/contracts/interfaces/registries/ILicenseRegistry.sol";
 import {ILicenseTemplate} from "@storyprotocol/contracts/interfaces/modules/licensing/ILicenseTemplate.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IRoyaltyManager} from "../interfaces/IRoyaltyManager.sol";
+import {IRoyaltyManager} from "../../interfaces/IRoyaltyManager.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {RoyaltyModule} from "../RoyaltyModule.sol"; // Added import
+import {RoyaltyModule} from "../../RoyaltyModule.sol"; // Added import
 
 /**
  * @title RoyaltyManager

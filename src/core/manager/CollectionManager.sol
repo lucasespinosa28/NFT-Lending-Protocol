@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {ICollectionManager} from "../interfaces/ICollectionManager.sol";
+import {ICollectionManager} from "../../interfaces/ICollectionManager.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; // Changed to OpenZeppelin
 /**

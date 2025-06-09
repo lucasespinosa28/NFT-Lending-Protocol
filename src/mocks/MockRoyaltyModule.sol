@@ -45,7 +45,7 @@ contract MockRoyaltyModule is IRoyaltyModule {
     }
 
     // --- Other IRoyaltyModule functions (minimal or no-op implementation) ---
-    function getRoyaltyPolicy(address) external view returns (address royaltyPolicy, address snapshotId) {
+    function getRoyaltyPolicy(address) external pure returns (address royaltyPolicy, address snapshotId) {
         // Removed override
         return (address(0), address(0));
     }
@@ -60,50 +60,50 @@ contract MockRoyaltyModule is IRoyaltyModule {
     {}
     function setIpRoyaltyVault(address, address) external {} // Removed override, not in IRoyaltyModule
 
-    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
+    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
         // Assuming IModule provides a base supportsInterface or this mock is intended to be basic
         return interfaceId == type(IRoyaltyModule).interfaceId || interfaceId == type(IModule).interfaceId;
     }
 
     // --- BEGIN Stubs for IRoyaltyModule ---
-    function accumulatedRoyaltyPolicies(address) external view override returns (address[] memory) {
+    function accumulatedRoyaltyPolicies(address) external pure override returns (address[] memory) {
         return new address[](0);
     }
 
-    function globalRoyaltyStack(address) external view override returns (uint32) {
+    function globalRoyaltyStack(address) external pure override returns (uint32) {
         return 0;
     }
 
-    function hasAncestorIp(address, address) external override returns (bool) {
+    function hasAncestorIp(address, address) external pure override returns (bool) {
         // Removed view as it's not in interface spec
         return false;
     }
 
-    function isIpRoyaltyVault(address) external view override returns (bool) {
+    function isIpRoyaltyVault(address) external pure override returns (bool) {
         return false;
     }
 
-    function isRegisteredExternalRoyaltyPolicy(address) external view override returns (bool) {
+    function isRegisteredExternalRoyaltyPolicy(address) external pure override returns (bool) {
         return false;
     }
 
-    function isWhitelistedRoyaltyPolicy(address) external view override returns (bool) {
+    function isWhitelistedRoyaltyPolicy(address) external pure override returns (bool) {
         return false;
     }
 
-    function isWhitelistedRoyaltyToken(address) external view override returns (bool) {
+    function isWhitelistedRoyaltyToken(address) external pure override returns (bool) {
         return false;
     }
 
-    function maxAccumulatedRoyaltyPolicies() external view override returns (uint256) {
+    function maxAccumulatedRoyaltyPolicies() external pure override returns (uint256) {
         return 0;
     }
 
-    function maxAncestors() external view override returns (uint256) {
+    function maxAncestors() external pure override returns (uint256) {
         return 0;
     }
 
-    function maxParents() external view override returns (uint256) {
+    function maxParents() external pure override returns (uint256) {
         return 0;
     }
 
@@ -111,7 +111,7 @@ contract MockRoyaltyModule is IRoyaltyModule {
         return 10000; // e.g., 100% with 2 decimal places
     }
 
-    function name() external override returns (string memory) {
+    function name() external pure override returns (string memory) {
         // Removed view, IModule.name() is not view
         return "MockRoyaltyModule";
     }
@@ -124,7 +124,7 @@ contract MockRoyaltyModule is IRoyaltyModule {
     function payLicenseMintingFee(address, address, address, uint256) external override {}
     function registerExternalRoyaltyPolicy(address) external override {}
 
-    function royaltyFeePercent() external view override returns (uint32) {
+    function royaltyFeePercent() external pure override returns (uint32) {
         return 0;
     }
 
@@ -132,15 +132,15 @@ contract MockRoyaltyModule is IRoyaltyModule {
     function setRoyaltyLimits(uint256) external override {}
     function setTreasury(address) external override {}
 
-    function totalRevenueTokensAccounted(address, address, address) external view override returns (uint256) {
+    function totalRevenueTokensAccounted(address, address, address) external pure override returns (uint256) {
         return 0;
     }
 
-    function totalRevenueTokensReceived(address, address) external view override returns (uint256) {
+    function totalRevenueTokensReceived(address, address) external pure override returns (uint256) {
         return 0;
     }
 
-    function treasury() external view override returns (address) {
+    function treasury() external pure override returns (address) {
         return address(0);
     }
 
@@ -148,7 +148,7 @@ contract MockRoyaltyModule is IRoyaltyModule {
     function whitelistRoyaltyToken(address, bool) external override {}
 
     // Added from interface, was missing in error list but present in IRoyaltyModule.sol
-    function ipRoyaltyVaults(address) external view override returns (address) {
+    function ipRoyaltyVaults(address) external pure override returns (address) {
         return address(0);
     }
     // --- END Stubs for IRoyaltyModule ---

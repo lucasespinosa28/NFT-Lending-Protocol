@@ -6,9 +6,9 @@ import {Vm} from "forge-std/Vm.sol";
 
 // Core contracts
 import {LendingProtocol} from "../../src/core/LendingProtocol.sol";
-import {CurrencyManager} from "../../src/core/CurrencyManager.sol";
-import {CollectionManager} from "../../src/core/CollectionManager.sol";
-import {RoyaltyManager} from "../../src/core/RoyaltyManager.sol";
+import {CurrencyManager} from "../../src/core/manager/CurrencyManager.sol";
+import {CollectionManager} from "../../src/core/manager/CollectionManager.sol";
+import {RoyaltyManager} from "../../src/core/manager/RoyaltyManager.sol";
 import {MockRoyaltyModule} from "../../src/mocks/MockRoyaltyModule.sol";
 import {MockIIPAssetRegistry} from "../../src/mocks/MockIIPAssetRegistry.sol";
 

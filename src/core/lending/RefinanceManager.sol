@@ -52,7 +52,7 @@ contract RefinanceManager is ReentrancyGuard {
     // Event definitions are now taken from ILendingProtocol.sol
 
     // --- External Dependencies (assumed to be available from inheriting contract e.g. LendingProtocol) ---
-    function _getLoan(bytes32 loanId) internal view virtual returns (ILendingProtocol.Loan memory) {
+    function _getLoan(bytes32) internal view virtual returns (ILendingProtocol.Loan memory) {
         /* revert("RM: LoanManager not set"); */
         return ILendingProtocol.Loan({
             loanId: bytes32(0),
@@ -84,7 +84,7 @@ contract RefinanceManager is ReentrancyGuard {
 
     function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData) internal virtual { /* revert("RM: LoanManager not set"); */ } // Changed to memory
 
-    function _calculateInterest(bytes32 loanId) internal view virtual returns (uint256) {
+    function _calculateInterest(bytes32) internal view virtual returns (uint256) {
         /* revert("RM: LoanManager not set"); */
         return 0;
     }

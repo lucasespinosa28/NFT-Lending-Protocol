@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../../src/core/CurrencyManager.sol";
-import "../../src/mocks/ERC20Mock.sol";
+import {CurrencyManager} from "../../src/core/manager/CurrencyManager.sol";
+import {ERC20Mock} from "../../src/mocks/ERC20Mock.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol"; // For Ownable errors
 
 contract CurrencyManagerTest is Test {
@@ -19,7 +19,7 @@ contract CurrencyManagerTest is Test {
         mockCurrency = new ERC20Mock("MockCurrency", "MCK");
     }
 
-    function test_InitialState() public {
+    function test_InitialState() public view {
         assertEq(currencyManager.owner(), admin, "Owner not set to deployer");
         assertEq(currencyManager.getSupportedCurrencies().length, 0, "Initially no currencies should be supported");
     }

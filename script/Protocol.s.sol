@@ -5,8 +5,8 @@ import {Script, console} from "forge-std/Script.sol";
 //import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
 
 import {LendingProtocol} from "../src/core/LendingProtocol.sol";
-import {CurrencyManager} from "../src/core/CurrencyManager.sol";
-import {CollectionManager} from "../src/core/CollectionManager.sol";
+import {CurrencyManager} from "../src/core/manager/CurrencyManager.sol";
+import {CollectionManager} from "../src/core/manager/CollectionManager.sol";
 import {RangeValidator} from "../src/core/RangeValidator.sol";
 import {Stash} from "../src/core/Stash.sol";
 
@@ -17,7 +17,7 @@ import {ERC721Mock} from "../src/mocks/ERC721Mock.sol";
 // Testnet/Local - Mock for IPAssetRegistry
 import {MockIPAssetRegistry} from "../src/mocks/MockIPAssetRegistry.sol";
 
-import {RoyaltyManager} from "../src/core/RoyaltyManager.sol";
+import {RoyaltyManager} from "../src/core/manager/RoyaltyManager.sol";
 import {IIPAssetRegistry} from "@storyprotocol/contracts/interfaces/registries/IIPAssetRegistry.sol";
 
 contract DeployProtocol is Script {
