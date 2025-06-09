@@ -35,7 +35,10 @@ interface IStash is
      * @param unstasher The address of the user who received the original NFT.
      */
     event TokenUnstashed(
-        uint256 indexed stashTokenId, address indexed originalContract, uint256 originalTokenId, address indexed unstasher
+        uint256 indexed stashTokenId,
+        address indexed originalContract,
+        uint256 originalTokenId,
+        address indexed unstasher
     );
 
     // --- Functions ---

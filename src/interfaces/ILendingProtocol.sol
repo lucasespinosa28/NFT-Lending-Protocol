@@ -23,6 +23,7 @@ interface ILendingProtocol {
         AUCTION_PENDING, // Loan defaulted, auction pending (for multi-tranche)
         AUCTION_ACTIVE, // Loan defaulted, auction active
         AUCTION_SETTLED // Loan defaulted, auction settled
+
     }
 
     /**
@@ -32,6 +33,7 @@ interface ILendingProtocol {
     enum OfferType {
         STANDARD, // Offer for a specific NFT
         COLLECTION // Offer for any NFT in a collection
+
     }
 
     /**
@@ -103,26 +105,26 @@ interface ILendingProtocol {
     }
 
     struct LoanRequestParams {
-        address nftContract;         // Contract address of the NFT to be used as collateral
-        uint256 nftTokenId;          // Token ID of the NFT
-        address currency;            // Address of the desired loan currency (ERC20 token)
-        uint256 principalAmount;     // Desired principal amount of the loan
-        uint256 interestRateAPR;     // Desired annual percentage rate (e.g., 500 for 5.00%)
-        uint256 durationSeconds;       // Desired duration of the loan in seconds
-        uint64 expirationTimestamp;   // Timestamp when this loan request expires
+        address nftContract; // Contract address of the NFT to be used as collateral
+        uint256 nftTokenId; // Token ID of the NFT
+        address currency; // Address of the desired loan currency (ERC20 token)
+        uint256 principalAmount; // Desired principal amount of the loan
+        uint256 interestRateAPR; // Desired annual percentage rate (e.g., 500 for 5.00%)
+        uint256 durationSeconds; // Desired duration of the loan in seconds
+        uint64 expirationTimestamp; // Timestamp when this loan request expires
     }
 
     struct LoanRequest {
-        bytes32 requestId;           // Unique ID for the loan request
-        address borrower;            // Address of the borrower
-        address nftContract;         // Contract address of the NFT collateral
-        uint256 nftTokenId;          // Token ID of the NFT collateral
-        address currency;            // Address of the loan currency
-        uint256 principalAmount;     // Principal amount requested
-        uint256 interestRateAPR;     // Interest rate requested (APR)
-        uint256 durationSeconds;       // Duration of the loan requested
-        uint64 expirationTimestamp;   // Timestamp when this request expires
-        bool isActive;               // Flag indicating if the request is still active
+        bytes32 requestId; // Unique ID for the loan request
+        address borrower; // Address of the borrower
+        address nftContract; // Contract address of the NFT collateral
+        uint256 nftTokenId; // Token ID of the NFT collateral
+        address currency; // Address of the loan currency
+        uint256 principalAmount; // Principal amount requested
+        uint256 interestRateAPR; // Interest rate requested (APR)
+        uint256 durationSeconds; // Duration of the loan requested
+        uint64 expirationTimestamp; // Timestamp when this request expires
+        bool isActive; // Flag indicating if the request is still active
     }
 
     // --- Events ---
@@ -299,10 +301,7 @@ interface ILendingProtocol {
         uint64 expirationTimestamp
     );
 
-    event LoanRequestCancelled(
-        bytes32 indexed requestId,
-        address indexed borrower
-    );
+    event LoanRequestCancelled(bytes32 indexed requestId, address indexed borrower);
 
     event LoanRequestAccepted(
         bytes32 indexed requestId,

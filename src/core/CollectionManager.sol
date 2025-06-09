@@ -16,7 +16,7 @@ contract CollectionManager is ICollectionManager, Ownable, ReentrancyGuard {
     address[] private collectionList;
     // mapping(address => uint256) public collectionMaxLTVs; // Example for LTV
 
-    constructor(address owner,address[] memory initialCollections) Ownable(owner) {
+    constructor(address owner, address[] memory initialCollections) Ownable(owner) {
         for (uint256 i = 0; i < initialCollections.length; i++) {
             _addWhitelistedCollection(initialCollections[i]);
         }

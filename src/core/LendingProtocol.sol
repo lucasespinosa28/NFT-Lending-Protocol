@@ -46,12 +46,10 @@ contract LendingProtocol is
     IRoyaltyManager public royaltyManager;
     IIPAssetRegistry public ipAssetRegistry;
 
-    constructor(
-        address _currencyManager,
-        address _collectionManager,
-        address _royaltyManager,
-        address _ipAssetRegistry
-    ) AdminManager() { // Calls AdminManager's constructor which calls Ownable(msg.sender)
+    constructor(address _currencyManager, address _collectionManager, address _royaltyManager, address _ipAssetRegistry)
+        AdminManager()
+    {
+        // Calls AdminManager's constructor which calls Ownable(msg.sender)
         require(_currencyManager != address(0), "LP: CurrencyManager zero address");
         require(_collectionManager != address(0), "LP: CollectionManager zero address");
         require(_royaltyManager != address(0), "LP: RoyaltyManager zero address");
@@ -68,12 +66,22 @@ contract LendingProtocol is
     // allowing managers to access shared state or cross-manager functionality via LendingProtocol.
 
     // For OfferManager, LoanManager, RefinanceManager, RequestManager
-    function _getCurrencyManager() internal view override(OfferManager, LoanManager, RefinanceManager, RequestManager) returns (ICurrencyManager) {
+    function _getCurrencyManager()
+        internal
+        view
+        override(OfferManager, LoanManager, RefinanceManager, RequestManager)
+        returns (ICurrencyManager)
+    {
         return currencyManager;
     }
 
     // For OfferManager, LoanManager, RequestManager
-    function _getCollectionManager() internal view override(OfferManager, LoanManager, RequestManager) returns (ICollectionManager) {
+    function _getCollectionManager()
+        internal
+        view
+        override(OfferManager, LoanManager, RequestManager)
+        returns (ICollectionManager)
+    {
         return collectionManager;
     }
 
@@ -90,7 +98,12 @@ contract LendingProtocol is
     }
 
     // Bridge for LoanManager to access OfferManager's public getLoanOffer
-    function _getLoanOffer(bytes32 offerId) internal view override(LoanManager) returns (ILendingProtocol.LoanOffer memory) {
+    function _getLoanOffer(bytes32 offerId)
+        internal
+        view
+        override(LoanManager)
+        returns (ILendingProtocol.LoanOffer memory)
+    {
         return this.getLoanOffer(offerId); // Calls OfferManager.getLoanOffer() via inheritance
     }
 
@@ -105,7 +118,10 @@ contract LendingProtocol is
     }
 
     // Bridge for RefinanceManager to access LoanManager's internal _setLoanStatus
-    function _setLoanStatus(bytes32 loanId, ILendingProtocol.LoanStatus status) internal override(RefinanceManager, LoanManager) {
+    function _setLoanStatus(bytes32 loanId, ILendingProtocol.LoanStatus status)
+        internal
+        override(RefinanceManager, LoanManager)
+    {
         LoanManager._setLoanStatus(loanId, status); // Explicitly call LoanManager's implementation
     }
 
@@ -115,7 +131,11 @@ contract LendingProtocol is
     }
 
     // Bridge for RefinanceManager to access LoanManager's internal _addLoan
-    function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData) internal override(RefinanceManager, LoanManager) { // memory
+    function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData)
+        internal
+        override(RefinanceManager, LoanManager)
+    {
+        // memory
         LoanManager._addLoan(loanId, loanData); // Explicitly call LoanManager's implementation
     }
 
@@ -125,12 +145,20 @@ contract LendingProtocol is
     }
 
     // Bridge for RefinanceManager to access LoanManager's internal _updateLoanAfterRenegotiation
-    function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime) internal override(RefinanceManager, LoanManager) {
+    function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime)
+        internal
+        override(RefinanceManager, LoanManager)
+    {
         LoanManager._updateLoanAfterRenegotiation(loanId, newPrincipal, newAPR, newDueTime); // Explicitly call LoanManager's implementation
     }
 
     // Bridge for LoanManager to access RequestManager's getLoanRequest
-    function _getLoanRequest(bytes32 requestId) internal view override(LoanManager) returns (ILendingProtocol.LoanRequest memory) {
+    function _getLoanRequest(bytes32 requestId)
+        internal
+        view
+        override(LoanManager)
+        returns (ILendingProtocol.LoanRequest memory)
+    {
         return RequestManager.getLoanRequest(requestId); // Call RequestManager's public getter
     }
 
@@ -141,22 +169,47 @@ contract LendingProtocol is
     }
 
     // --- AdminManager setter implementations ---
-    function _setCurrencyManager(ICurrencyManager newManager) internal override(AdminManager) { currencyManager = newManager; }
-    function _setCollectionManager(ICollectionManager newManager) internal override(AdminManager) { collectionManager = newManager; }
-    function _setLiquidationContract(ILiquidation newContract) internal override(AdminManager) { liquidationContract = newContract; }
-    function _setPurchaseBundler(IPurchaseBundler newBundler) internal override(AdminManager) { purchaseBundler = newBundler; }
-    function _setRoyaltyManager(IRoyaltyManager newManager) internal override(AdminManager) { royaltyManager = newManager; }
-    function _setIpAssetRegistry(IIPAssetRegistry newRegistry) internal override(AdminManager) { ipAssetRegistry = newRegistry; }
+    function _setCurrencyManager(ICurrencyManager newManager) internal override(AdminManager) {
+        currencyManager = newManager;
+    }
+
+    function _setCollectionManager(ICollectionManager newManager) internal override(AdminManager) {
+        collectionManager = newManager;
+    }
+
+    function _setLiquidationContract(ILiquidation newContract) internal override(AdminManager) {
+        liquidationContract = newContract;
+    }
+
+    function _setPurchaseBundler(IPurchaseBundler newBundler) internal override(AdminManager) {
+        purchaseBundler = newBundler;
+    }
+
+    function _setRoyaltyManager(IRoyaltyManager newManager) internal override(AdminManager) {
+        royaltyManager = newManager;
+    }
+
+    function _setIpAssetRegistry(IIPAssetRegistry newRegistry) internal override(AdminManager) {
+        ipAssetRegistry = newRegistry;
+    }
 
     // --- ILendingProtocol Interface Implementation ---
     // These functions override both ILendingProtocol and the respective manager's virtual function.
     // They delegate the call to the manager's implementation via `super`.
 
-    function makeLoanOffer(ILendingProtocol.OfferParams calldata params) public override(ILendingProtocol, OfferManager) returns (bytes32 offerId) {
+    function makeLoanOffer(ILendingProtocol.OfferParams calldata params)
+        public
+        override(ILendingProtocol, OfferManager)
+        returns (bytes32 offerId)
+    {
         return super.makeLoanOffer(params);
     }
 
-    function acceptLoanOffer(bytes32 offerId, address nftContract, uint256 nftTokenId) public override(ILendingProtocol, LoanManager) returns (bytes32 loanId) {
+    function acceptLoanOffer(bytes32 offerId, address nftContract, uint256 nftTokenId)
+        public
+        override(ILendingProtocol, LoanManager)
+        returns (bytes32 loanId)
+    {
         return super.acceptLoanOffer(offerId, nftContract, nftTokenId);
     }
 
@@ -172,12 +225,27 @@ contract LendingProtocol is
         super.claimAndRepay(loanId);
     }
 
-    function refinanceLoan( bytes32 existingLoanId, uint256 newPrincipalAmount, uint256 newInterestRateAPR, uint256 newDurationSeconds, uint256 newOriginationFeeRate) public override(ILendingProtocol, RefinanceManager) returns (bytes32 newLoanId) {
-        return super.refinanceLoan(existingLoanId, newPrincipalAmount, newInterestRateAPR, newDurationSeconds, newOriginationFeeRate);
+    function refinanceLoan(
+        bytes32 existingLoanId,
+        uint256 newPrincipalAmount,
+        uint256 newInterestRateAPR,
+        uint256 newDurationSeconds,
+        uint256 newOriginationFeeRate
+    ) public override(ILendingProtocol, RefinanceManager) returns (bytes32 newLoanId) {
+        return super.refinanceLoan(
+            existingLoanId, newPrincipalAmount, newInterestRateAPR, newDurationSeconds, newOriginationFeeRate
+        );
     }
 
-    function proposeRenegotiation( bytes32 loanId, uint256 proposedPrincipalAmount, uint256 proposedInterestRateAPR, uint256 proposedDurationSeconds) public override(ILendingProtocol, RefinanceManager) returns (bytes32 newProposalId) {
-        newProposalId = super.proposeRenegotiation(loanId, proposedPrincipalAmount, proposedInterestRateAPR, proposedDurationSeconds);
+    function proposeRenegotiation(
+        bytes32 loanId,
+        uint256 proposedPrincipalAmount,
+        uint256 proposedInterestRateAPR,
+        uint256 proposedDurationSeconds
+    ) public override(ILendingProtocol, RefinanceManager) returns (bytes32 newProposalId) {
+        newProposalId = super.proposeRenegotiation(
+            loanId, proposedPrincipalAmount, proposedInterestRateAPR, proposedDurationSeconds
+        );
         ILendingProtocol.Loan memory loan = this.getLoan(loanId);
         emit LoanRenegotiationProposed( // Use locally defined event
             newProposalId,
@@ -211,19 +279,37 @@ contract LendingProtocol is
         super.buyCollateralAndRepay(loanId, salePrice);
     }
 
-    function recordLoanRepaymentViaSale(bytes32 loanId, uint256 principalRepaid, uint256 interestRepaid) public override(ILendingProtocol, LoanManager) {
+    function recordLoanRepaymentViaSale(bytes32 loanId, uint256 principalRepaid, uint256 interestRepaid)
+        public
+        override(ILendingProtocol, LoanManager)
+    {
         super.recordLoanRepaymentViaSale(loanId, principalRepaid, interestRepaid);
     }
 
-    function getLoan(bytes32 loanId) public view override(ILendingProtocol, LoanManager) returns (ILendingProtocol.Loan memory) {
+    function getLoan(bytes32 loanId)
+        public
+        view
+        override(ILendingProtocol, LoanManager)
+        returns (ILendingProtocol.Loan memory)
+    {
         return super.getLoan(loanId);
     }
 
-    function getLoanOffer(bytes32 offerId) public view override(ILendingProtocol, OfferManager) returns (ILendingProtocol.LoanOffer memory) {
+    function getLoanOffer(bytes32 offerId)
+        public
+        view
+        override(ILendingProtocol, OfferManager)
+        returns (ILendingProtocol.LoanOffer memory)
+    {
         return super.getLoanOffer(offerId);
     }
 
-    function calculateInterest(bytes32 loanId) public view override(ILendingProtocol, LoanManager) returns (uint256 interestDue) {
+    function calculateInterest(bytes32 loanId)
+        public
+        view
+        override(ILendingProtocol, LoanManager)
+        returns (uint256 interestDue)
+    {
         return super.calculateInterest(loanId);
     }
 
@@ -260,10 +346,7 @@ contract LendingProtocol is
         // requestId is already returned by the assignment from super call.
     }
 
-    function cancelLoanRequest(bytes32 requestId)
-        public
-        override(ILendingProtocol, RequestManager)
-    {
+    function cancelLoanRequest(bytes32 requestId) public override(ILendingProtocol, RequestManager) {
         super.cancelLoanRequest(requestId); // Calls RequestManager.cancelLoanRequest()
         emit LoanRequestCancelled(requestId, msg.sender); // msg.sender is the original caller
     }

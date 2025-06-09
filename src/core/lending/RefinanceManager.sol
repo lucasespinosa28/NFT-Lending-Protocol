@@ -14,12 +14,8 @@ interface ILoanManagerForRefinance {
     function incrementLoanCounter() external returns (uint256);
     function addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData) external; // Changed to memory
     function calculateInterest(bytes32 loanId) external view returns (uint256);
-    function updateLoanAfterRenegotiation(
-        bytes32 loanId,
-        uint256 newPrincipal,
-        uint256 newAPR,
-        uint64 newDueTime
-    ) external;
+    function updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime)
+        external;
 }
 
 /**
@@ -56,16 +52,54 @@ contract RefinanceManager is ReentrancyGuard {
     // Event definitions are now taken from ILendingProtocol.sol
 
     // --- External Dependencies (assumed to be available from inheriting contract e.g. LendingProtocol) ---
-    function _getLoan(bytes32 loanId) internal view virtual returns (ILendingProtocol.Loan memory) { /* revert("RM: LoanManager not set"); */ return ILendingProtocol.Loan({loanId: bytes32(0), offerId: bytes32(0), borrower: address(0), lender: address(0), nftContract: address(0), nftTokenId: 0, isVault: false, currency: address(0), principalAmount: 0, interestRateAPR: 0, originationFeePaid: 0, startTime: 0, dueTime: 0, accruedInterest: 0, status: ILendingProtocol.LoanStatus.ACTIVE, storyIpId: address(0), isStoryAsset: false}); }
+    function _getLoan(bytes32 loanId) internal view virtual returns (ILendingProtocol.Loan memory) {
+        /* revert("RM: LoanManager not set"); */
+        return ILendingProtocol.Loan({
+            loanId: bytes32(0),
+            offerId: bytes32(0),
+            borrower: address(0),
+            lender: address(0),
+            nftContract: address(0),
+            nftTokenId: 0,
+            isVault: false,
+            currency: address(0),
+            principalAmount: 0,
+            interestRateAPR: 0,
+            originationFeePaid: 0,
+            startTime: 0,
+            dueTime: 0,
+            accruedInterest: 0,
+            status: ILendingProtocol.LoanStatus.ACTIVE,
+            storyIpId: address(0),
+            isStoryAsset: false
+        });
+    }
+
     function _setLoanStatus(bytes32 loanId, ILendingProtocol.LoanStatus status) internal virtual { /* revert("RM: LoanManager not set"); */ }
-    function _incrementLoanCounter() internal virtual returns (uint256) { /* revert("RM: LoanManager not set"); */ return 0; }
+
+    function _incrementLoanCounter() internal virtual returns (uint256) {
+        /* revert("RM: LoanManager not set"); */
+        return 0;
+    }
+
     function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory loanData) internal virtual { /* revert("RM: LoanManager not set"); */ } // Changed to memory
-    function _calculateInterest(bytes32 loanId) internal view virtual returns (uint256) { /* revert("RM: LoanManager not set"); */ return 0; }
-    function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime) internal virtual {
+
+    function _calculateInterest(bytes32 loanId) internal view virtual returns (uint256) {
+        /* revert("RM: LoanManager not set"); */
+        return 0;
+    }
+
+    function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime)
+        internal
+        virtual
+    {
         /* revert("RM: LoanManager not set for renegotiation update"); */
     }
-    function _getCurrencyManager() internal view virtual returns (ICurrencyManager) { /* revert("RM: CurrencyManager not set"); */ return ICurrencyManager(address(0)); }
 
+    function _getCurrencyManager() internal view virtual returns (ICurrencyManager) {
+        /* revert("RM: CurrencyManager not set"); */
+        return ICurrencyManager(address(0));
+    }
 
     // --- Functions ---
 
@@ -75,7 +109,8 @@ contract RefinanceManager is ReentrancyGuard {
         uint256 newInterestRateAPR,
         uint256 newDurationSeconds,
         uint256 newOriginationFeeRate
-    ) public virtual nonReentrant returns (bytes32 newLoanId) { // Changed to public
+    ) public virtual nonReentrant returns (bytes32 newLoanId) {
+        // Changed to public
         ILendingProtocol.Loan memory oldLoan = _getLoan(existingLoanId);
         require(oldLoan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         require(msg.sender != address(0), "Invalid lender");
@@ -131,7 +166,8 @@ contract RefinanceManager is ReentrancyGuard {
         uint256 proposedPrincipalAmount,
         uint256 proposedInterestRateAPR,
         uint256 proposedDurationSeconds
-    ) public virtual nonReentrant returns (bytes32 proposalId) { // Changed to public
+    ) public virtual nonReentrant returns (bytes32 proposalId) {
+        // Changed to public
         ILendingProtocol.Loan memory loan = _getLoan(loanId);
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         require(msg.sender == loan.lender, "Only lender can propose");
@@ -153,7 +189,8 @@ contract RefinanceManager is ReentrancyGuard {
         return proposalId;
     }
 
-    function acceptRenegotiation(bytes32 proposalId) public virtual nonReentrant { // Changed to public
+    function acceptRenegotiation(bytes32 proposalId) public virtual nonReentrant {
+        // Changed to public
         RenegotiationProposal storage proposal = renegotiationProposals[proposalId]; // Corrected
         require(proposal.exists, "Proposal does not exist");
         require(!proposal.accepted, "Already accepted");
@@ -165,10 +202,7 @@ contract RefinanceManager is ReentrancyGuard {
         uint64 newDueTime = uint64(loan.startTime + proposal.proposedDurationSeconds);
 
         _updateLoanAfterRenegotiation(
-            proposal.loanId,
-            proposal.proposedPrincipalAmount,
-            proposal.proposedInterestRateAPR,
-            newDueTime
+            proposal.loanId, proposal.proposedPrincipalAmount, proposal.proposedInterestRateAPR, newDueTime
         );
 
         proposal.accepted = true;

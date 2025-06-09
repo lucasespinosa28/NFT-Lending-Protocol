@@ -36,7 +36,6 @@ contract OfferManager is ReentrancyGuard {
         return ICollectionManager(address(0));
     }
 
-
     // --- Functions ---
 
     /**
@@ -44,7 +43,13 @@ contract OfferManager is ReentrancyGuard {
      * @param params Parameters for the loan offer.
      * @return offerId The ID of the newly created loan offer.
      */
-    function makeLoanOffer(ILendingProtocol.OfferParams calldata params) public virtual nonReentrant returns (bytes32 offerId) { // external to public
+    function makeLoanOffer(ILendingProtocol.OfferParams calldata params)
+        public
+        virtual
+        nonReentrant
+        returns (bytes32 offerId)
+    {
+        // external to public
         ICurrencyManager currencyManager = _getCurrencyManager();
         ICollectionManager collectionManager = _getCollectionManager();
 
@@ -107,7 +112,8 @@ contract OfferManager is ReentrancyGuard {
      * @notice Cancels an active loan offer.
      * @param offerId The ID of the loan offer to cancel.
      */
-    function cancelLoanOffer(bytes32 offerId) public virtual nonReentrant { // external to public
+    function cancelLoanOffer(bytes32 offerId) public virtual nonReentrant {
+        // external to public
         ILendingProtocol.LoanOffer storage offer = loanOffers[offerId];
         require(offer.lender == msg.sender, "Not offer owner");
         require(offer.isActive, "Offer not active");
@@ -122,7 +128,8 @@ contract OfferManager is ReentrancyGuard {
      * @param offerId The ID of the loan offer.
      * @return The LoanOffer struct.
      */
-    function getLoanOffer(bytes32 offerId) public view virtual returns (ILendingProtocol.LoanOffer memory) { // external to public
+    function getLoanOffer(bytes32 offerId) public view virtual returns (ILendingProtocol.LoanOffer memory) {
+        // external to public
         return loanOffers[offerId];
     }
 

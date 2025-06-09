@@ -74,7 +74,7 @@ contract LendingProtocolBaseTest is Test {
 
         address[] memory initialCollections = new address[](1);
         initialCollections[0] = address(mockNft);
-        collectionManager = new CollectionManager(owner,initialCollections);
+        collectionManager = new CollectionManager(owner, initialCollections);
 
         // 2. Deploy PurchaseBundler (if needed, otherwise can be mocked)        // 3. Deploy LendingProtocol
         // Deploy new mock dependencies for RoyaltyManager and LendingProtocol
@@ -95,7 +95,6 @@ contract LendingProtocolBaseTest is Test {
             address(royaltyManager), // Use deployed RoyaltyManager
             address(mockIpAssetRegistry) // Use deployed MockIIPAssetRegistry
         );
-
 
         vm.stopPrank();
 

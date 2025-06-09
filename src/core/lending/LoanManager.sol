@@ -20,7 +20,6 @@ interface IOfferManager {
     function setLoanOfferInactive(bytes32 offerId) external; // New function needed
 }
 
-
 contract LoanManager is ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for IERC20;
 
@@ -43,12 +42,53 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
 
     // --- External Dependencies (assumed to be available from inheriting contract e.g. LendingProtocol) ---
     // These functions will be overridden in LendingProtocol to return its state variables.
-    function _getCurrencyManager() internal view virtual returns (ICurrencyManager) { /* revert("LM: CurrencyManager not set"); */ return ICurrencyManager(address(0)); }
-    function _getCollectionManager() internal view virtual returns (ICollectionManager) { /* revert("LM: CollectionManager not set"); */ return ICollectionManager(address(0)); }
-    function _getIpAssetRegistry() internal view virtual returns (IIPAssetRegistry) { /* revert("LM: IPAssetRegistry not set"); */ return IIPAssetRegistry(address(0)); }
-    function _getRoyaltyManager() internal view virtual returns (IRoyaltyManager) { /* revert("LM: RoyaltyManager not set"); */ return IRoyaltyManager(address(0)); }
-    function _getPurchaseBundler() internal view virtual returns (IPurchaseBundler) { /* revert("LM: PurchaseBundler not set"); */ return IPurchaseBundler(address(0)); }
-    function _getLoanOffer(bytes32 offerId) internal view virtual returns (ILendingProtocol.LoanOffer memory) { /* revert("LM: OfferManager not set"); */ return ILendingProtocol.LoanOffer({offerId: bytes32(0), lender: address(0), offerType: ILendingProtocol.OfferType.STANDARD, nftContract: address(0), nftTokenId: 0, currency: address(0), principalAmount: 0, interestRateAPR: 0, durationSeconds: 0, expirationTimestamp: 0, originationFeeRate: 0, maxSeniorRepayment: 0, totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0, isActive: true}); }
+    function _getCurrencyManager() internal view virtual returns (ICurrencyManager) {
+        /* revert("LM: CurrencyManager not set"); */
+        return ICurrencyManager(address(0));
+    }
+
+    function _getCollectionManager() internal view virtual returns (ICollectionManager) {
+        /* revert("LM: CollectionManager not set"); */
+        return ICollectionManager(address(0));
+    }
+
+    function _getIpAssetRegistry() internal view virtual returns (IIPAssetRegistry) {
+        /* revert("LM: IPAssetRegistry not set"); */
+        return IIPAssetRegistry(address(0));
+    }
+
+    function _getRoyaltyManager() internal view virtual returns (IRoyaltyManager) {
+        /* revert("LM: RoyaltyManager not set"); */
+        return IRoyaltyManager(address(0));
+    }
+
+    function _getPurchaseBundler() internal view virtual returns (IPurchaseBundler) {
+        /* revert("LM: PurchaseBundler not set"); */
+        return IPurchaseBundler(address(0));
+    }
+
+    function _getLoanOffer(bytes32 offerId) internal view virtual returns (ILendingProtocol.LoanOffer memory) {
+        /* revert("LM: OfferManager not set"); */
+        return ILendingProtocol.LoanOffer({
+            offerId: bytes32(0),
+            lender: address(0),
+            offerType: ILendingProtocol.OfferType.STANDARD,
+            nftContract: address(0),
+            nftTokenId: 0,
+            currency: address(0),
+            principalAmount: 0,
+            interestRateAPR: 0,
+            durationSeconds: 0,
+            expirationTimestamp: 0,
+            originationFeeRate: 0,
+            maxSeniorRepayment: 0,
+            totalCapacity: 0,
+            maxPrincipalPerLoan: 0,
+            minNumberOfLoans: 0,
+            isActive: true
+        });
+    }
+
     function _setLoanOfferInactive(bytes32 offerId) internal virtual { /* revert("LM: OfferManager not set"); */ }
 
     // --- Virtual functions for RequestManager interaction (to be implemented by LendingProtocol) ---
@@ -80,15 +120,15 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         address underlyingCollateralContract;
         uint256 underlyingCollateralTokenId;
 
-        if (offer.offerType == ILendingProtocol.OfferType.STANDARD) { // Corrected
+        if (offer.offerType == ILendingProtocol.OfferType.STANDARD) {
+            // Corrected
             underlyingCollateralContract = offer.nftContract;
             underlyingCollateralTokenId = offer.nftTokenId;
         } else {
             underlyingCollateralContract = nftContract;
             underlyingCollateralTokenId = nftTokenId;
             require(
-                collectionManager.isCollectionWhitelisted(underlyingCollateralContract),
-                "Collection not whitelisted"
+                collectionManager.isCollectionWhitelisted(underlyingCollateralContract), "Collection not whitelisted"
             );
         }
 
@@ -105,9 +145,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         uint256 effectiveCollateralTokenId = underlyingCollateralTokenId;
 
         // Removed vaultsFactory logic, only standard NFT collateral supported
-        require(
-            IERC721(effectiveCollateralContract).ownerOf(effectiveCollateralTokenId) == msg.sender, "Not NFT owner"
-        );
+        require(IERC721(effectiveCollateralContract).ownerOf(effectiveCollateralTokenId) == msg.sender, "Not NFT owner");
 
         IERC721(effectiveCollateralContract).safeTransferFrom(msg.sender, address(this), effectiveCollateralTokenId);
 
@@ -158,7 +196,8 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         return loanId;
     }
 
-    function calculateInterest(bytes32 loanId) public view virtual returns (uint256) { // Changed to public
+    function calculateInterest(bytes32 loanId) public view virtual returns (uint256) {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         uint256 timeElapsed =
@@ -166,7 +205,8 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         return (loan.principalAmount * loan.interestRateAPR * timeElapsed) / (365 days * 10000); // Renamed
     }
 
-    function repayLoan(bytes32 loanId) public virtual nonReentrant onlyBorrower(loanId) { // Changed to public
+    function repayLoan(bytes32 loanId) public virtual nonReentrant onlyBorrower(loanId) {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         require(block.timestamp <= loan.dueTime, "Loan past due (defaulted)");
@@ -182,20 +222,20 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         emit ILendingProtocol.LoanRepaid(loanId, msg.sender, loan.lender, loan.principalAmount, interest); // Qualified
     }
 
-    function claimAndRepay(bytes32 loanId) public virtual nonReentrant onlyBorrower(loanId) { // Changed to public
+    function claimAndRepay(bytes32 loanId) public virtual nonReentrant onlyBorrower(loanId) {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
 
         IRoyaltyManager royaltyManager = _getRoyaltyManager();
         IIPAssetRegistry ipAssetRegistry = _getIpAssetRegistry();
 
-        address ipIdToUse = loan.isStoryAsset ? loan.storyIpId :
-            ipAssetRegistry.ipId(block.chainid, loan.nftContract, loan.nftTokenId);
+        address ipIdToUse =
+            loan.isStoryAsset ? loan.storyIpId : ipAssetRegistry.ipId(block.chainid, loan.nftContract, loan.nftTokenId);
 
         if (loan.isStoryAsset) {
-             require(loan.storyIpId != address(0), "Loan is Story asset but IP ID is missing");
+            require(loan.storyIpId != address(0), "Loan is Story asset but IP ID is missing");
         }
-
 
         royaltyManager.claimRoyalty(ipIdToUse, loan.currency);
         uint256 royaltyBalance = royaltyManager.getRoyaltyBalance(ipIdToUse, loan.currency);
@@ -207,9 +247,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         if (royaltyBalance > 0) {
             uint256 amountToWithdrawFromRoyalty =
                 royaltyBalance >= totalRepaymentDue ? totalRepaymentDue : royaltyBalance;
-            royaltyManager.withdrawRoyalty(
-                ipIdToUse, loan.currency, loan.lender, amountToWithdrawFromRoyalty
-            );
+            royaltyManager.withdrawRoyalty(ipIdToUse, loan.currency, loan.lender, amountToWithdrawFromRoyalty);
 
             if (royaltyBalance >= totalRepaymentDue) {
                 loan.accruedInterest = interest;
@@ -218,9 +256,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
             } else {
                 loan.principalAmount = originalPrincipal - amountToWithdrawFromRoyalty;
                 uint256 remainingRepaymentByBorrower = totalRepaymentDue - amountToWithdrawFromRoyalty;
-                IERC20(loan.currency).safeTransferFrom(
-                    msg.sender, loan.lender, remainingRepaymentByBorrower
-                );
+                IERC20(loan.currency).safeTransferFrom(msg.sender, loan.lender, remainingRepaymentByBorrower);
                 loan.accruedInterest = interest;
                 loan.status = ILendingProtocol.LoanStatus.REPAID;
                 emit ILendingProtocol.LoanRepaid(loanId, msg.sender, loan.lender, originalPrincipal, interest); // Qualified
@@ -234,7 +270,8 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         IERC721(loan.nftContract).safeTransferFrom(address(this), loan.borrower, loan.nftTokenId);
     }
 
-    function claimCollateral(bytes32 loanId) public virtual nonReentrant onlyLender(loanId) { // Changed to public
+    function claimCollateral(bytes32 loanId) public virtual nonReentrant onlyLender(loanId) {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         require(block.timestamp > loan.dueTime, "Loan not defaulted");
@@ -244,21 +281,25 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         emit ILendingProtocol.CollateralClaimed(loanId, loan.lender, loan.nftContract, loan.nftTokenId); // Qualified
     }
 
-    function getLoan(bytes32 loanId) public view virtual returns (ILendingProtocol.Loan memory) {  // Changed to public
+    function getLoan(bytes32 loanId) public view virtual returns (ILendingProtocol.Loan memory) {
+        // Changed to public
         return loans[loanId];
     }
 
-    function isLoanRepayable(bytes32 loanId) public view virtual returns (bool) { // Changed to public
+    function isLoanRepayable(bytes32 loanId) public view virtual returns (bool) {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         return loan.status == ILendingProtocol.LoanStatus.ACTIVE && block.timestamp <= loan.dueTime;
     }
 
-    function isLoanInDefault(bytes32 loanId) public view virtual returns (bool) { // Changed to public
+    function isLoanInDefault(bytes32 loanId) public view virtual returns (bool) {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         return loan.status == ILendingProtocol.LoanStatus.ACTIVE && block.timestamp > loan.dueTime;
     }
 
-    function listCollateralForSale(bytes32 loanId, uint256 price) public virtual nonReentrant onlyBorrower(loanId) { // Changed to public
+    function listCollateralForSale(bytes32 loanId, uint256 price) public virtual nonReentrant onlyBorrower(loanId) {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         IPurchaseBundler purchaseBundler = _getPurchaseBundler();
@@ -266,24 +307,20 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
 
         IERC721(loan.nftContract).approve(address(purchaseBundler), loan.nftTokenId);
         purchaseBundler.listCollateralForSale(
-            loanId,
-            loan.nftContract,
-            loan.nftTokenId,
-            loan.isVault,
-            price,
-            loan.currency,
-            loan.borrower
+            loanId, loan.nftContract, loan.nftTokenId, loan.isVault, price, loan.currency, loan.borrower
         );
         emit ILendingProtocol.CollateralListedForSale(loanId, msg.sender, loan.nftContract, loan.nftTokenId, price); // Qualified
     }
 
-    function cancelCollateralSale(bytes32 loanId) public virtual nonReentrant onlyBorrower(loanId) { // Changed to public
+    function cancelCollateralSale(bytes32 loanId) public virtual nonReentrant onlyBorrower(loanId) {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active for sale cancellation");
         emit ILendingProtocol.CollateralSaleCancelled(loanId, msg.sender); // Qualified
     }
 
-    function buyCollateralAndRepay(bytes32 loanId, uint256 salePrice) public virtual nonReentrant { // Changed to public
+    function buyCollateralAndRepay(bytes32 loanId, uint256 salePrice) public virtual nonReentrant {
+        // Changed to public
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "Loan not active");
         uint256 interest = this.calculateInterest(loanId); // Added this.
@@ -298,7 +335,9 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
 
         loan.status = ILendingProtocol.LoanStatus.REPAID;
         loan.accruedInterest = interest;
-        emit ILendingProtocol.CollateralSoldAndRepaid(loanId, msg.sender, loan.nftContract, loan.nftTokenId, salePrice, totalRepayment); // Qualified
+        emit ILendingProtocol.CollateralSoldAndRepaid(
+            loanId, msg.sender, loan.nftContract, loan.nftTokenId, salePrice, totalRepayment
+        ); // Qualified
     }
 
     function recordLoanRepaymentViaSale(bytes32 loanId, uint256 principalRepaid, uint256 interestRepaid)
@@ -319,7 +358,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         emit ILendingProtocol.LoanRepaid(loanId, loan.borrower, loan.lender, loan.principalAmount, interestRepaid); // Qualified
     }
 
-    function onERC721Received(address /*operator*/, address /*from*/, uint256 /*tokenId*/, bytes calldata /*data*/)
+    function onERC721Received(address, /*operator*/ address, /*from*/ uint256, /*tokenId*/ bytes calldata /*data*/ )
         external
         override
         returns (bytes4)
@@ -329,12 +368,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
 
     // --- Internal functions for other Managers (via LendingProtocol) ---
 
-    function acceptLoanRequest(bytes32 requestId)
-        public
-        virtual
-        nonReentrant
-        returns (bytes32 loanId)
-    {
+    function acceptLoanRequest(bytes32 requestId) public virtual nonReentrant returns (bytes32 loanId) {
         ILendingProtocol.LoanRequest memory request = _getLoanRequest(requestId); // Fetches from RequestManager via LendingProtocol
 
         require(request.isActive, "LM: Loan request not active");
@@ -344,15 +378,18 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         // ICurrencyManager currencyManager = _getCurrencyManager();
         // require(currencyManager.isCurrencySupported(request.currency), "LM: Currency not supported");
 
-
         // Check NFT ownership by the borrower
-        require(IERC721(request.nftContract).ownerOf(request.nftTokenId) == request.borrower, "LM: Borrower not NFT owner");
+        require(
+            IERC721(request.nftContract).ownerOf(request.nftTokenId) == request.borrower, "LM: Borrower not NFT owner"
+        );
 
         // Check if LendingProtocol contract is approved to transfer the NFT
         // address(this) is the LoanManager instance, which is part of LendingProtocol
-        require(IERC721(request.nftContract).getApproved(request.nftTokenId) == address(this) ||
-                IERC721(request.nftContract).isApprovedForAll(request.borrower, address(this)),
-                "LM: LendingProtocol not approved for NFT transfer");
+        require(
+            IERC721(request.nftContract).getApproved(request.nftTokenId) == address(this)
+                || IERC721(request.nftContract).isApprovedForAll(request.borrower, address(this)),
+            "LM: LendingProtocol not approved for NFT transfer"
+        );
 
         // Transfer NFT from borrower to this contract (LendingProtocol)
         IERC721(request.nftContract).safeTransferFrom(request.borrower, address(this), request.nftTokenId);
@@ -383,7 +420,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
             accruedInterest: 0,
             status: ILendingProtocol.LoanStatus.ACTIVE,
             storyIpId: address(0), // Assuming not a Story Protocol asset by default for requests
-            isStoryAsset: false    // ^
+            isStoryAsset: false // ^
         });
 
         // Mark the loan request as inactive
@@ -426,17 +463,16 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         return loanCounter;
     }
 
-    function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory newLoanData) internal virtual { // Corrected to memory from previous plan
+    function _addLoan(bytes32 loanId, ILendingProtocol.Loan memory newLoanData) internal virtual {
+        // Corrected to memory from previous plan
         require(loans[loanId].borrower == address(0), "LoanManager: Loan ID already exists");
         loans[loanId] = newLoanData;
     }
 
-    function _updateLoanAfterRenegotiation(
-        bytes32 loanId,
-        uint256 newPrincipal,
-        uint256 newAPR,
-        uint64 newDueTime
-    ) internal virtual {
+    function _updateLoanAfterRenegotiation(bytes32 loanId, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime)
+        internal
+        virtual
+    {
         ILendingProtocol.Loan storage loan = loans[loanId]; // Renamed for clarity, and corrected
         require(loan.borrower != address(0), "LoanManager: Loan does not exist for renegotiation");
         require(loan.status == ILendingProtocol.LoanStatus.ACTIVE, "LoanManager: Loan not active for renegotiation");

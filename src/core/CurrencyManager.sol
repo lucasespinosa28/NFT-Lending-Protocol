@@ -10,6 +10,7 @@ import {ICurrencyManager} from "../interfaces/ICurrencyManager.sol";
  * @notice Manages supported ERC20 currencies for loans.
  * @dev Implements ICurrencyManager. This is a placeholder implementation.
  */
+// aderyn-ignore-next-line(centralization-risk)
 contract CurrencyManager is ICurrencyManager, Ownable {
     mapping(address => bool) private supportedCurrencies;
     address[] private currencyList;
@@ -34,6 +35,7 @@ contract CurrencyManager is ICurrencyManager, Ownable {
     /**
      * @inheritdoc ICurrencyManager
      */
+    // aderyn-ignore-next-line(centralization-risk)
     function addSupportedCurrency(address tokenAddress) external override onlyOwner {
         _addSupportedCurrency(tokenAddress);
     }
@@ -68,22 +70,28 @@ contract CurrencyManager is ICurrencyManager, Ownable {
     /**
      * @inheritdoc ICurrencyManager
      */
-    function removeSupportedCurrency(address tokenAddress) external override onlyOwner {
-        require(tokenAddress != address(0), "Zero address");
-        require(supportedCurrencies[tokenAddress], "Currency not supported");
+    // aderyn-ignore-next-line(centralization-risk)
+  function removeSupportedCurrency(address tokenAddress) external override onlyOwner {
+    require(tokenAddress != address(0), "Zero address");
+    require(supportedCurrencies[tokenAddress], "Currency not supported");
 
-        supportedCurrencies[tokenAddress] = false;
+    supportedCurrencies[tokenAddress] = false;
 
-        // Remove from list (can be gas intensive for large lists)
-        for (uint256 i = 0; i < currencyList.length; i++) {
-            if (currencyList[i] == tokenAddress) {
-                currencyList[i] = currencyList[currencyList.length - 1];
-                currencyList.pop();
-                break;
-            }
+    uint256 len = currencyList.length; // Cache length to avoid repeated SLOAD
+    uint256 indexToRemove = len; // Set to len as a sentinel value
+    for (uint256 i = 0; i < len; i++) {
+        if (currencyList[i] == tokenAddress) {
+            indexToRemove = i;
+            break;
         }
-        emit CurrencyRemoved(tokenAddress);
     }
+    if (indexToRemove < len) {
+        address lastToken = currencyList[len - 1];
+        currencyList[indexToRemove] = lastToken;
+        currencyList.pop();
+    }
+    emit CurrencyRemoved(tokenAddress);
+}
 
     /**
      * @inheritdoc ICurrencyManager

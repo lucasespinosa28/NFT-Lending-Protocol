@@ -35,19 +35,20 @@ contract LifecycleTests is LendingProtocolBaseTest {
     }
 
     // Helper to make and return an offer ID
-    function _makeAndGetStandardOfferId(address offerLender, ILendingProtocol.OfferParams memory params) internal returns (bytes32) {
+    function _makeAndGetStandardOfferId(address offerLender, ILendingProtocol.OfferParams memory params)
+        internal
+        returns (bytes32)
+    {
         vm.startPrank(offerLender);
         bytes32 newOfferId = lendingProtocol.makeLoanOffer(params);
         vm.stopPrank();
         return newOfferId;
     }
 
-
     function test_AcceptStandardLoanOffer_Success() public {
         // 1. Lender makes an offer
-        ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParams =
+            _makeStandardOfferParams(address(mockNft), BORROWER_NFT_ID, address(weth), 1 days);
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
 
         // 2. Borrower accepts the offer
@@ -100,7 +101,10 @@ contract LifecycleTests is LendingProtocolBaseTest {
     function test_Fail_AcceptLoanOffer_OfferExpired() public {
         // 1. Lender makes an offer with short expiration (e.g., 1 second)
         ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 // Expires in 1 second
+            address(mockNft),
+            BORROWER_NFT_ID,
+            address(weth),
+            1 // Expires in 1 second
         );
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
 
@@ -116,9 +120,8 @@ contract LifecycleTests is LendingProtocolBaseTest {
 
     function test_Fail_AcceptLoanOffer_OfferInactive() public {
         // 1. Lender makes an offer
-        ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParams =
+            _makeStandardOfferParams(address(mockNft), BORROWER_NFT_ID, address(weth), 1 days);
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
 
         // 2. Lender cancels the offer
@@ -136,7 +139,10 @@ contract LifecycleTests is LendingProtocolBaseTest {
     function test_Fail_AcceptLoanOffer_NotNftOwner() public {
         // 1. Lender makes an offer for an NFT the borrower doesn't own
         ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days // BORROWER_NFT_ID is owned by `borrower`
+            address(mockNft),
+            BORROWER_NFT_ID,
+            address(weth),
+            1 days // BORROWER_NFT_ID is owned by `borrower`
         );
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
 
@@ -154,9 +160,8 @@ contract LifecycleTests is LendingProtocolBaseTest {
         uint256 otherNftId = 99;
         mockNft.mint(otherUser, otherNftId); // otherUser owns otherNftId
 
-        ILendingProtocol.OfferParams memory offerParamsForOtherNft = _makeStandardOfferParams(
-            address(mockNft), otherNftId, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParamsForOtherNft =
+            _makeStandardOfferParams(address(mockNft), otherNftId, address(weth), 1 days);
         bytes32 offerIdForOtherNft = _makeAndGetStandardOfferId(lender, offerParamsForOtherNft);
 
         vm.startPrank(borrower); // Borrower tries to accept offer for NFT they don't own
@@ -169,9 +174,8 @@ contract LifecycleTests is LendingProtocolBaseTest {
 
     function test_RepayLoan_Success() public {
         // 1. Create an active loan
-        ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParams =
+            _makeStandardOfferParams(address(mockNft), BORROWER_NFT_ID, address(weth), 1 days);
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
 
         vm.startPrank(borrower);
@@ -203,8 +207,16 @@ contract LifecycleTests is LendingProtocolBaseTest {
         assertEq(loanAfterRepayment.accruedInterest, interest, "Accrued interest incorrect");
 
         // Verify WETH transfers
-        assertEq(weth.balanceOf(borrower), borrowerWethBalanceBeforeRepay - totalRepayment, "Borrower WETH balance incorrect after repay");
-        assertEq(weth.balanceOf(lender), lenderWethBalanceBeforeRepay + totalRepayment, "Lender WETH balance incorrect after repay");
+        assertEq(
+            weth.balanceOf(borrower),
+            borrowerWethBalanceBeforeRepay - totalRepayment,
+            "Borrower WETH balance incorrect after repay"
+        );
+        assertEq(
+            weth.balanceOf(lender),
+            lenderWethBalanceBeforeRepay + totalRepayment,
+            "Lender WETH balance incorrect after repay"
+        );
 
         // Verify NFT return
         assertEq(mockNft.ownerOf(BORROWER_NFT_ID), borrower, "NFT not returned to borrower");
@@ -213,9 +225,8 @@ contract LifecycleTests is LendingProtocolBaseTest {
 
     function test_Fail_RepayLoan_NotBorrower() public {
         // 1. Create an active loan
-        ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParams =
+            _makeStandardOfferParams(address(mockNft), BORROWER_NFT_ID, address(weth), 1 days);
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
         vm.startPrank(borrower);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
@@ -237,9 +248,8 @@ contract LifecycleTests is LendingProtocolBaseTest {
 
     function test_Fail_RepayLoan_InsufficientFunds() public {
         // 1. Create an active loan
-        ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParams =
+            _makeStandardOfferParams(address(mockNft), BORROWER_NFT_ID, address(weth), 1 days);
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
         vm.startPrank(borrower);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
@@ -254,9 +264,9 @@ contract LifecycleTests is LendingProtocolBaseTest {
         // Borrower already received principal - fee. Let's ensure their balance is less than totalRepayment.
         uint256 currentBorrowerBalance = weth.balanceOf(borrower);
         if (currentBorrowerBalance >= totalRepayment) {
-             // Burn some tokens to make sure they don't have enough
+            // Burn some tokens to make sure they don't have enough
             vm.prank(borrower);
-            weth.burn(currentBorrowerBalance - (totalRepayment / 2) ); // Leave them with half of what's needed
+            weth.burn(currentBorrowerBalance - (totalRepayment / 2)); // Leave them with half of what's needed
         }
 
         vm.startPrank(borrower);
@@ -291,9 +301,8 @@ contract LifecycleTests is LendingProtocolBaseTest {
 
     function test_ClaimCollateral_Success() public {
         // 1. Create an active loan
-        ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParams =
+            _makeStandardOfferParams(address(mockNft), BORROWER_NFT_ID, address(weth), 1 days);
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
         vm.startPrank(borrower);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
@@ -311,7 +320,9 @@ contract LifecycleTests is LendingProtocolBaseTest {
 
         // 4. Verify states
         ILendingProtocol.Loan memory loanAfterClaim = lendingProtocol.getLoan(loanId);
-        assertEq(uint8(loanAfterClaim.status), uint8(ILendingProtocol.LoanStatus.DEFAULTED), "Loan status not DEFAULTED");
+        assertEq(
+            uint8(loanAfterClaim.status), uint8(ILendingProtocol.LoanStatus.DEFAULTED), "Loan status not DEFAULTED"
+        );
 
         // Verify NFT transfer to lender
         assertEq(mockNft.ownerOf(BORROWER_NFT_ID), lender, "NFT not transferred to lender");
@@ -320,9 +331,8 @@ contract LifecycleTests is LendingProtocolBaseTest {
 
     function test_Fail_ClaimCollateral_NotLender() public {
         // 1. Create an active loan
-        ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParams =
+            _makeStandardOfferParams(address(mockNft), BORROWER_NFT_ID, address(weth), 1 days);
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
         vm.startPrank(borrower);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);
@@ -341,9 +351,8 @@ contract LifecycleTests is LendingProtocolBaseTest {
 
     function test_Fail_ClaimCollateral_LoanNotDefaulted() public {
         // 1. Create an active loan
-        ILendingProtocol.OfferParams memory offerParams = _makeStandardOfferParams(
-            address(mockNft), BORROWER_NFT_ID, address(weth), 1 days
-        );
+        ILendingProtocol.OfferParams memory offerParams =
+            _makeStandardOfferParams(address(mockNft), BORROWER_NFT_ID, address(weth), 1 days);
         offerId = _makeAndGetStandardOfferId(lender, offerParams);
         vm.startPrank(borrower);
         bytes32 loanId = lendingProtocol.acceptLoanOffer(offerId, address(mockNft), BORROWER_NFT_ID);

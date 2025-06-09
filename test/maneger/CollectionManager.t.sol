@@ -61,12 +61,7 @@ contract CollectionManagerTest is Test {
     function testOnlyOwnerCanAdd() public {
         address nonOwner = address(0x123);
         vm.prank(nonOwner);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                bytes4(keccak256("OwnableUnauthorizedAccount(address)")),
-                nonOwner
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), nonOwner));
         manager.addWhitelistedCollection(address(mockNFT1));
     }
 }

@@ -34,14 +34,7 @@ contract DeployProtocol is Script {
     RoyaltyManager royaltyManager;
     IIPAssetRegistry ipAssetRegistry;
 
-    function run()
-        external
-        returns (
-            LendingProtocol,
-            CurrencyManager,
-            CollectionManager
-        )
-    {
+    function run() external returns (LendingProtocol, CurrencyManager, CollectionManager) {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         // If no private key, use a default for local testing
         // address deployerAddress = vm.addr(deployerPrivateKey);
@@ -66,13 +59,12 @@ contract DeployProtocol is Script {
 
         address[] memory initialCollections = new address[](1);
         initialCollections[0] = address(mockNftCollection1);
-        address  owner = address(this);
-        collectionManager = new CollectionManager(owner,initialCollections);
+        address owner = address(this);
+        collectionManager = new CollectionManager(owner, initialCollections);
         console.log("Deployed CollectionManager at:", address(collectionManager));
 
         rangeValidator = new RangeValidator(); // Basic validator
         console.log("Deployed RangeValidator at:", address(rangeValidator));
-
 
         // 4. Deploy Liquidation and PurchaseBundler (these need LendingProtocol address, but LP needs them too - chicken/egg)
         // Temporary: Deploy them, then set addresses later, or deploy LP first and then set its dependencies.
@@ -113,15 +105,10 @@ contract DeployProtocol is Script {
         // - D.setMainContract(MainContractAddress)
         // - E.setMainContract(MainContractAddress)
 
-
         lendingProtocol = new LendingProtocol(
-            address(currencyManager),
-            address(collectionManager),
-            address(royaltyManager),
-            address(ipAssetRegistry)
+            address(currencyManager), address(collectionManager), address(royaltyManager), address(ipAssetRegistry)
         );
         console.log("Deployed LendingProtocol at:", address(lendingProtocol));
-
 
         // Transfer ownership of ownable contracts to a Gnosis Safe or a governance contract
         // address multisig = address(0x...); // Your multisig/governance address

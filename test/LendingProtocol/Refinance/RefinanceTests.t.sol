@@ -17,6 +17,7 @@ contract RefinanceTests is LendingProtocolBaseTest {
         uint256 proposedDuration
     );
     // Default loan parameters for setup
+
     uint256 internal constant DEFAULT_LOAN_PRINCIPAL = 1 ether;
     uint256 internal constant DEFAULT_LOAN_APR = 1000; // 10%
     uint256 internal constant DEFAULT_LOAN_DURATION = 30 days;
@@ -46,7 +47,9 @@ contract RefinanceTests is LendingProtocolBaseTest {
             durationSeconds: DEFAULT_LOAN_DURATION,
             expirationTimestamp: uint64(block.timestamp + DEFAULT_OFFER_EXPIRATION_OFFSET),
             originationFeeRate: DEFAULT_LOAN_ORIGINATION_FEE,
-            totalCapacity: 0, maxPrincipalPerLoan: 0, minNumberOfLoans: 0
+            totalCapacity: 0,
+            maxPrincipalPerLoan: 0,
+            minNumberOfLoans: 0
         });
         bytes32 offerId = lendingProtocol.makeLoanOffer(offerParams);
         vm.stopPrank();
@@ -85,14 +88,15 @@ contract RefinanceTests is LendingProtocolBaseTest {
         // Event check for refinanceLoan is commented out due to difficulty predicting indexed newLoanId.
         vm.startPrank(newLender);
 
-        bytes32 newLoanId = lendingProtocol.refinanceLoan(
-            oldLoanId, newPrincipal, newAPR, newDuration, newOriginationFee
-        );
+        bytes32 newLoanId =
+            lendingProtocol.refinanceLoan(oldLoanId, newPrincipal, newAPR, newDuration, newOriginationFee);
         vm.stopPrank();
 
         // 4. Verify states
         ILendingProtocol.Loan memory oldLoanAfterRefinance = lendingProtocol.getLoan(oldLoanId);
-        assertEq(uint8(oldLoanAfterRefinance.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Old loan status not REPAID");
+        assertEq(
+            uint8(oldLoanAfterRefinance.status), uint8(ILendingProtocol.LoanStatus.REPAID), "Old loan status not REPAID"
+        );
 
         ILendingProtocol.Loan memory newLoan = lendingProtocol.getLoan(newLoanId);
         assertEq(uint8(newLoan.status), uint8(ILendingProtocol.LoanStatus.ACTIVE), "New loan status not ACTIVE");
@@ -104,11 +108,19 @@ contract RefinanceTests is LendingProtocolBaseTest {
         assertEq(newLoan.nftTokenId, oldLoan.nftTokenId, "NFT token ID mismatch");
 
         // Verify balances
-        assertEq(weth.balanceOf(newLender), newLenderBalanceBefore - totalRepaymentToOldLender, "New lender balance incorrect");
-        assertEq(weth.balanceOf(lender), oldLenderBalanceBefore + totalRepaymentToOldLender, "Old lender balance incorrect");
+        assertEq(
+            weth.balanceOf(newLender),
+            newLenderBalanceBefore - totalRepaymentToOldLender,
+            "New lender balance incorrect"
+        );
+        assertEq(
+            weth.balanceOf(lender), oldLenderBalanceBefore + totalRepaymentToOldLender, "Old lender balance incorrect"
+        );
 
         // Verify NFT is still with the protocol (escrowed for the new loan)
-        assertEq(mockNft.ownerOf(oldLoan.nftTokenId), address(lendingProtocol), "NFT not escrowed by protocol for new loan");
+        assertEq(
+            mockNft.ownerOf(oldLoan.nftTokenId), address(lendingProtocol), "NFT not escrowed by protocol for new loan"
+        );
     }
 
     function test_Fail_RefinanceLoan_OldLoanNotActive() public {
@@ -149,9 +161,7 @@ contract RefinanceTests is LendingProtocolBaseTest {
         vm.startPrank(newLender);
         weth.approve(address(lendingProtocol), type(uint256).max);
         vm.expectRevert(bytes("Principal must be >= old"));
-        lendingProtocol.refinanceLoan(
-            oldLoanId, newPrincipalTooLow, newAPR, newDuration, newOriginationFee
-        );
+        lendingProtocol.refinanceLoan(oldLoanId, newPrincipalTooLow, newAPR, newDuration, newOriginationFee);
         vm.stopPrank();
     }
 
@@ -164,7 +174,8 @@ contract RefinanceTests is LendingProtocolBaseTest {
         // Example: old APR is 10% (1000). 5% improvement means new APR <= 9.5% (950).
         // Test with APR = 9.51% (951), which is not enough improvement.
         uint256 newAPRNotImprovedEnough = (oldLoan.interestRateAPR * 951) / 1000; // e.g. 1000 * 951 / 1000 = 951 (9.51%)
-        if (newAPRNotImprovedEnough == (oldLoan.interestRateAPR * 95 / 100)) { // Handle edge case if multiplication/division makes it accidentally valid
+        if (newAPRNotImprovedEnough == (oldLoan.interestRateAPR * 95 / 100)) {
+            // Handle edge case if multiplication/division makes it accidentally valid
             newAPRNotImprovedEnough = newAPRNotImprovedEnough + 1;
         }
 
@@ -174,27 +185,21 @@ contract RefinanceTests is LendingProtocolBaseTest {
         vm.startPrank(newLender);
         weth.approve(address(lendingProtocol), type(uint256).max);
         vm.expectRevert(bytes("APR not improved by 5%"));
-        lendingProtocol.refinanceLoan(
-            oldLoanId, newPrincipal, newAPRNotImprovedEnough, newDuration, newOriginationFee
-        );
+        lendingProtocol.refinanceLoan(oldLoanId, newPrincipal, newAPRNotImprovedEnough, newDuration, newOriginationFee);
         vm.stopPrank();
 
         // Test with APR exactly the same as old (also should fail)
         uint256 newAPRSame = oldLoan.interestRateAPR;
         vm.startPrank(newLender);
         vm.expectRevert(bytes("APR not improved by 5%"));
-        lendingProtocol.refinanceLoan(
-            oldLoanId, newPrincipal, newAPRSame, newDuration, newOriginationFee
-        );
+        lendingProtocol.refinanceLoan(oldLoanId, newPrincipal, newAPRSame, newDuration, newOriginationFee);
         vm.stopPrank();
 
         // Test with APR slightly worse (also should fail)
         uint256 newAPRWorse = oldLoan.interestRateAPR + 100; // e.g. 11% if old was 10%
         vm.startPrank(newLender);
         vm.expectRevert(bytes("APR not improved by 5%"));
-        lendingProtocol.refinanceLoan(
-            oldLoanId, newPrincipal, newAPRWorse, newDuration, newOriginationFee
-        );
+        lendingProtocol.refinanceLoan(oldLoanId, newPrincipal, newAPRWorse, newDuration, newOriginationFee);
         vm.stopPrank();
     }
 
@@ -222,14 +227,13 @@ contract RefinanceTests is LendingProtocolBaseTest {
             loanId: loanId,
             proposer: loan.lender,
             borrower: address(0), // Values for non-indexed fields don't matter for matching with all false flags,
-            proposedPrincipal: 0,   // but must be provided to match the signature.
+            proposedPrincipal: 0, // but must be provided to match the signature.
             proposedAPR: 0,
             proposedDuration: 0
         });
 
-        bytes32 proposalId = lendingProtocol.proposeRenegotiation(
-            loanId, proposedPrincipal, proposedAPR, proposedDuration
-        );
+        bytes32 proposalId =
+            lendingProtocol.proposeRenegotiation(loanId, proposedPrincipal, proposedAPR, proposedDuration);
         vm.stopPrank();
 
         assertTrue(proposalId != bytes32(0), "Proposal ID should not be zero");
@@ -242,9 +246,15 @@ contract RefinanceTests is LendingProtocolBaseTest {
         // The mapping `renegotiationProposals` is public in RefinanceManager,
         // so we can call it on `lendingProtocol` (which inherits it).
         (
-            bytes32 pId, bytes32 lId, address proposer, address pBorrower,
-            uint256 pPrincipal, uint256 pAPR, uint256 pDuration,
-            bool accepted, bool exists
+            bytes32 pId,
+            bytes32 lId,
+            address proposer,
+            address pBorrower,
+            uint256 pPrincipal,
+            uint256 pAPR,
+            uint256 pDuration,
+            bool accepted,
+            bool exists
         ) = lendingProtocol.renegotiationProposals(proposalId);
 
         assertTrue(exists, "Proposal should exist");
@@ -269,9 +279,7 @@ contract RefinanceTests is LendingProtocolBaseTest {
 
         vm.startPrank(otherUser);
         vm.expectRevert(bytes("Only lender can propose"));
-        lendingProtocol.proposeRenegotiation(
-            loanId, proposedPrincipal, proposedAPR, proposedDuration
-        );
+        lendingProtocol.proposeRenegotiation(loanId, proposedPrincipal, proposedAPR, proposedDuration);
         vm.stopPrank();
     }
 
@@ -286,9 +294,8 @@ contract RefinanceTests is LendingProtocolBaseTest {
         uint256 proposedDurationSeconds = (originalLoan.dueTime - originalLoan.startTime) + 2 days;
 
         vm.startPrank(originalLoan.lender);
-        bytes32 proposalId = lendingProtocol.proposeRenegotiation(
-            loanId, proposedPrincipal, proposedAPR, proposedDurationSeconds
-        );
+        bytes32 proposalId =
+            lendingProtocol.proposeRenegotiation(loanId, proposedPrincipal, proposedAPR, proposedDurationSeconds);
         vm.stopPrank();
 
         // 2. Borrower accepts the renegotiation
@@ -297,7 +304,9 @@ contract RefinanceTests is LendingProtocolBaseTest {
         // Expect LoanRenegotiated(bytes32 indexed loanId, address indexed borrower, address indexed lender, uint256 newPrincipal, uint256 newAPR, uint64 newDueTime);
         uint64 expectedNewDueTime = uint64(originalLoan.startTime + proposedDurationSeconds);
         vm.expectEmit(true, true, true, true, address(lendingProtocol));
-        emit ILendingProtocol.LoanRenegotiated(loanId, originalLoan.borrower, originalLoan.lender, proposedPrincipal, proposedAPR, expectedNewDueTime);
+        emit ILendingProtocol.LoanRenegotiated(
+            loanId, originalLoan.borrower, originalLoan.lender, proposedPrincipal, proposedAPR, expectedNewDueTime
+        );
 
         lendingProtocol.acceptRenegotiation(proposalId);
         vm.stopPrank();
@@ -307,10 +316,12 @@ contract RefinanceTests is LendingProtocolBaseTest {
         assertEq(updatedLoan.principalAmount, proposedPrincipal, "Principal not updated");
         assertEq(updatedLoan.interestRateAPR, proposedAPR, "APR not updated");
         assertEq(updatedLoan.dueTime, uint64(originalLoan.startTime + proposedDurationSeconds), "Due time not updated");
-        assertEq(uint8(updatedLoan.status), uint8(ILendingProtocol.LoanStatus.ACTIVE), "Loan status should remain ACTIVE"); // Assuming it stays active
+        assertEq(
+            uint8(updatedLoan.status), uint8(ILendingProtocol.LoanStatus.ACTIVE), "Loan status should remain ACTIVE"
+        ); // Assuming it stays active
 
         // 4. Verify proposal is marked as accepted
-        (, , , , , , , bool accepted, bool exists) = lendingProtocol.renegotiationProposals(proposalId);
+        (,,,,,,, bool accepted, bool exists) = lendingProtocol.renegotiationProposals(proposalId);
         assertTrue(exists, "Proposal should still exist");
         assertTrue(accepted, "Proposal should be marked as accepted");
     }
@@ -320,7 +331,10 @@ contract RefinanceTests is LendingProtocolBaseTest {
         (bytes32 loanId, ILendingProtocol.Loan memory originalLoan) = _createActiveLoan();
         vm.startPrank(originalLoan.lender);
         bytes32 proposalId = lendingProtocol.proposeRenegotiation(
-            loanId, originalLoan.principalAmount, originalLoan.interestRateAPR * 80 / 100, (originalLoan.dueTime - originalLoan.startTime)
+            loanId,
+            originalLoan.principalAmount,
+            originalLoan.interestRateAPR * 80 / 100,
+            (originalLoan.dueTime - originalLoan.startTime)
         );
         vm.stopPrank();
 
@@ -331,7 +345,7 @@ contract RefinanceTests is LendingProtocolBaseTest {
         vm.stopPrank();
 
         // 3. Verify proposal is not accepted
-        (, , , , , , , bool accepted, ) = lendingProtocol.renegotiationProposals(proposalId);
+        (,,,,,,, bool accepted,) = lendingProtocol.renegotiationProposals(proposalId);
         assertFalse(accepted, "Proposal should not be accepted");
     }
 
@@ -340,7 +354,10 @@ contract RefinanceTests is LendingProtocolBaseTest {
         (bytes32 loanId, ILendingProtocol.Loan memory originalLoan) = _createActiveLoan();
         vm.startPrank(originalLoan.lender);
         bytes32 proposalId = lendingProtocol.proposeRenegotiation(
-            loanId, originalLoan.principalAmount, originalLoan.interestRateAPR * 80 / 100, (originalLoan.dueTime - originalLoan.startTime)
+            loanId,
+            originalLoan.principalAmount,
+            originalLoan.interestRateAPR * 80 / 100,
+            (originalLoan.dueTime - originalLoan.startTime)
         );
         vm.stopPrank();
 

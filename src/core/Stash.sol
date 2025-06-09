@@ -88,20 +88,18 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
         bytes32 originalKey = keccak256(abi.encodePacked(originalContract, originalTokenId));
         require(originalToStashId[originalKey] == 0, "Token already stashed");
 
-        // Take ownership of the original NFT
-        ExternalIERC721(originalContract).safeTransferFrom(msg.sender, address(this), originalTokenId);
-
+        // --- EFFECTS: Update all state before external call ---
         stashTokenCounter++;
         stashTokenId = stashTokenCounter;
 
-        stashedTokenDetails[stashTokenId] = StashedTokenInfo({
-            originalContract: originalContract,
-            originalTokenId: originalTokenId,
-            isStashed: true // Mark that this stash token ID has associated original token data
-        });
+        stashedTokenDetails[stashTokenId] =
+            StashedTokenInfo({originalContract: originalContract, originalTokenId: originalTokenId, isStashed: true});
         originalToStashId[originalKey] = stashTokenId;
 
-        _mint(msg.sender, stashTokenId); // Mint the wrapped token to the stasher
+        _mint(msg.sender, stashTokenId);
+
+        // --- INTERACTIONS: External call after state changes ---
+        ExternalIERC721(originalContract).safeTransferFrom(msg.sender, address(this), originalTokenId);
 
         emit TokenStashed(originalContract, originalTokenId, msg.sender, stashTokenId);
         return stashTokenId;
@@ -173,7 +171,7 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
     /**
      * @notice Returns the base URI for stash token metadata.
      */
-    function _baseURI() internal view override returns (string memory) {
+    function _baseURI() internal pure override returns (string memory) {
         return "api/stash/"; // Placeholder
     }
 

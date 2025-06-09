@@ -54,7 +54,11 @@ contract RequestManager is ReentrancyGuard {
         require(params.expirationTimestamp > block.timestamp, "RM: Expiration in past");
 
         requestCounter++;
-        requestId = keccak256(abi.encodePacked("loanRequest", requestCounter, msg.sender, block.timestamp, params.nftContract, params.nftTokenId));
+        requestId = keccak256(
+            abi.encodePacked(
+                "loanRequest", requestCounter, msg.sender, block.timestamp, params.nftContract, params.nftTokenId
+            )
+        );
 
         loanRequests[requestId] = ILendingProtocol.LoanRequest({
             requestId: requestId,

@@ -7,10 +7,11 @@ import {Vm} from "forge-std/Vm.sol"; // Import Vm to access Vm.Log
 import {LendingProtocolBaseTest} from "../LendingProtocolBase.t.sol"; // Or your base test setup
 import {ILendingProtocol} from "../../../src/interfaces/ILendingProtocol.sol";
 import {ERC721Mock} from "../../../src/mocks/ERC721Mock.sol"; // Assuming you have this
-import {ERC20Mock} from "../../../src/mocks/ERC20Mock.sol";   // Assuming you have this
+import {ERC20Mock} from "../../../src/mocks/ERC20Mock.sol"; // Assuming you have this
 
-contract RequestTests is LendingProtocolBaseTest { // Inherit from base
-
+contract RequestTests is
+    LendingProtocolBaseTest // Inherit from base
+{
     // address borrower = makeAddr("borrower"); // Inherited from LendingProtocolBaseTest
     // address lender = makeAddr("lender");     // Inherited from LendingProtocolBaseTest
     ERC721Mock testNft;
@@ -18,7 +19,7 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
     uint256 nftTokenId = 1;
 
     bytes32 lastRequestId; // To store requestId for subsequent tests
-    bytes32 lastLoanId;    // To store loanId for subsequent tests
+    bytes32 lastLoanId; // To store loanId for subsequent tests
 
     event LoanRequestMade(
         bytes32 indexed requestId,
@@ -32,10 +33,7 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
         uint64 expirationTimestamp
     );
 
-    event LoanRequestCancelled(
-        bytes32 indexed requestId,
-        address indexed borrower
-    );
+    event LoanRequestCancelled(bytes32 indexed requestId, address indexed borrower);
 
     event LoanRequestAccepted(
         bytes32 indexed requestId,
@@ -50,18 +48,20 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
     );
 
     // Event from LoanManager, but emitted by LendingProtocol
+    // This will be the requestId
+    // Max 3 indexed, removing from lender
+    // No longer indexed
     event OfferAccepted( // Re-used for loan acceptance via request
         bytes32 indexed loanId,
-        bytes32 indexed offerId, // This will be the requestId
-        address indexed borrower, // Max 3 indexed, removing from lender
-        address lender, // No longer indexed
+        bytes32 indexed offerId,
+        address indexed borrower,
+        address lender,
         address nftContractAddress,
         uint256 nftId,
         address currency,
         uint256 principal,
         uint64 dueDate
     );
-
 
     function setUp() public virtual override {
         super.setUp(); // Call base setup
@@ -73,8 +73,8 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
         testNft.mint(borrower, nftTokenId);
 
         // Mint currency to lender and borrower (for approvals etc.)
-        testCurrency.mint(lender, 1_000_000 * 10**18); // Lender has plenty of funds
-        testCurrency.mint(borrower, 100 * 10**18); // Borrower for any potential fees or approvals
+        testCurrency.mint(lender, 1_000_000 * 10 ** 18); // Lender has plenty of funds
+        testCurrency.mint(borrower, 100 * 10 ** 18); // Borrower for any potential fees or approvals
 
         // Whitelist collection and currency in LendingProtocol
         vm.prank(owner);
@@ -93,7 +93,7 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
             nftContract: address(testNft),
             nftTokenId: nftTokenId,
             currency: address(testCurrency),
-            principalAmount: 100 * 10**18, // 100 TC tokens
+            principalAmount: 100 * 10 ** 18, // 100 TC tokens
             interestRateAPR: 1000, // 10%
             durationSeconds: 30 days,
             expirationTimestamp: uint64(block.timestamp + 7 days)
@@ -117,7 +117,7 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
             nftContract: address(testNft),
             nftTokenId: nftTokenId, // This NFT is owned by borrower
             currency: address(testCurrency),
-            principalAmount: 100 * 10**18,
+            principalAmount: 100 * 10 ** 18,
             interestRateAPR: 1000,
             durationSeconds: 30 days,
             expirationTimestamp: uint64(block.timestamp + 7 days)
@@ -172,7 +172,7 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
 
         // Lender approves protocol to spend currency
         vm.prank(lender);
-        testCurrency.approve(address(lendingProtocol), 100 * 10**18); // Changed protocol to lendingProtocol
+        testCurrency.approve(address(lendingProtocol), 100 * 10 ** 18); // Changed protocol to lendingProtocol
 
         vm.startPrank(lender);
         // Event checking removed from this test, will be covered by test_Req_acceptLoanRequest_Events_Precise
@@ -184,8 +184,8 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
         // Verify NFT transfer
         assertEq(testNft.ownerOf(nftTokenId), address(lendingProtocol)); // Changed protocol to lendingProtocol
         // Verify currency transfer
-        assertEq(testCurrency.balanceOf(borrower), (100 + 100) * 10**18); // Initial + loan principal
-        assertEq(testCurrency.balanceOf(lender), (1_000_000 - 100) * 10**18); // Initial - loan principal
+        assertEq(testCurrency.balanceOf(borrower), (100 + 100) * 10 ** 18); // Initial + loan principal
+        assertEq(testCurrency.balanceOf(lender), (1_000_000 - 100) * 10 ** 18); // Initial - loan principal
 
         // Verify request inactive
         ILendingProtocol.LoanRequest memory req = lendingProtocol.getLoanRequest(lastRequestId); // Changed protocol to lendingProtocol
@@ -195,7 +195,7 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
         ILendingProtocol.Loan memory loan = lendingProtocol.getLoan(loanId); // Changed protocol to lendingProtocol
         assertEq(loan.borrower, borrower);
         assertEq(loan.lender, lender);
-        assertEq(loan.principalAmount, 100 * 10**18);
+        assertEq(loan.principalAmount, 100 * 10 ** 18);
         assertTrue(loan.status == ILendingProtocol.LoanStatus.ACTIVE);
     }
 
@@ -204,10 +204,10 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
         vm.recordLogs();
         lendingProtocol.acceptLoanRequest(_requestId); // Changed protocol to lendingProtocol
         Vm.Log[] memory entries = vm.getRecordedLogs(); // Changed Log[] to Vm.Log[]
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == LoanRequestAccepted.selector) {
                 (bytes32 reqId, bytes32 lId, address eventLender, address eventBorrower, uint64 dTime) = // Unused variables
-                    abi.decode(entries[i].data, (bytes32, bytes32, address, address, uint64));
+                 abi.decode(entries[i].data, (bytes32, bytes32, address, address, uint64));
                 // Further decoding of topics for indexed fields if necessary
                 return (lId, dTime); // reqId, eventLender, eventBorrower are unused, which is fine for a helper like this.
             }
@@ -215,14 +215,13 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
         revert("LoanRequestAccepted event not found");
     }
 
-
     function test_Req_acceptLoanRequest_Events_Precise() public {
         test_Req_makeLoanRequest_Success();
 
         vm.prank(borrower);
         testNft.approve(address(lendingProtocol), nftTokenId); // Changed protocol to lendingProtocol
         vm.prank(lender);
-        testCurrency.approve(address(lendingProtocol), 100 * 10**18); // Changed protocol to lendingProtocol
+        testCurrency.approve(address(lendingProtocol), 100 * 10 ** 18); // Changed protocol to lendingProtocol
 
         ILendingProtocol.LoanRequest memory request = lendingProtocol.getLoanRequest(lastRequestId); // Changed protocol to lendingProtocol
 
@@ -248,15 +247,20 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
         bool foundOfferAccepted = false;
         uint64 expectedDueTime = uint64(block.timestamp + request.durationSeconds);
 
-
-        for (uint i = 0; i < entries.length; i++) {
+        for (uint256 i = 0; i < entries.length; i++) {
             if (entries[i].topics[0] == LoanRequestAccepted.selector) {
                 // bytes32 rId; bytes32 lId; address l; address b; address nC; uint256 nT; address cur; uint256 pA; uint64 dT;
                 // (rId, lId, l, b, nC, nT, cur, pA, dT) = abi.decode(entries[i].data, (bytes32, bytes32, address, address, address, uint256, address, uint256, uint64));
                 // For indexed: entries[i].topics[1] is requestId, topics[2] is loanId, topics[3] is lender
                 // Non-indexed are in data
-                (address decodedBorrower, address decodedNftContract, uint256 decodedNftTokenId, address decodedCurrency, uint256 decodedPrincipal, uint64 decodedDueTime) =
-                    abi.decode(entries[i].data, (address, address, uint256, address, uint256, uint64));
+                (
+                    address decodedBorrower,
+                    address decodedNftContract,
+                    uint256 decodedNftTokenId,
+                    address decodedCurrency,
+                    uint256 decodedPrincipal,
+                    uint64 decodedDueTime
+                ) = abi.decode(entries[i].data, (address, address, uint256, address, uint256, uint64));
 
                 assertEq(bytes32(entries[i].topics[1]), lastRequestId);
                 assertEq(bytes32(entries[i].topics[2]), loanId);
@@ -264,12 +268,14 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
                 assertEq(decodedBorrower, borrower); // Borrower is not indexed in this event
                 assertEq(decodedPrincipal, request.principalAmount);
                 // Timestamps can be tricky due to block progression if not careful
-                assertTrue(decodedDueTime >= expectedDueTime && decodedDueTime <= expectedDueTime + 1, "Due time mismatch");
+                assertTrue(
+                    decodedDueTime >= expectedDueTime && decodedDueTime <= expectedDueTime + 1, "Due time mismatch"
+                );
                 foundLoanRequestAccepted = true;
             }
             if (entries[i].topics[0] == OfferAccepted.selector) {
-                    // (bytes32 lId, bytes32 oId, address b, address l, address ncAdd, uint256 nId, address curr, uint256 princ, uint64 dDate) =
-                    //    abi.decode(entries[i].data, (bytes32,bytes32,address,address,address,uint256,address,uint256,uint64));
+                // (bytes32 lId, bytes32 oId, address b, address l, address ncAdd, uint256 nId, address curr, uint256 princ, uint64 dDate) =
+                //    abi.decode(entries[i].data, (bytes32,bytes32,address,address,address,uint256,address,uint256,uint64));
                 assertEq(bytes32(entries[i].topics[1]), loanId); // loanId is indexed
                 assertEq(bytes32(entries[i].topics[2]), lastRequestId); // offerId (requestId) is indexed
                 assertEq(address(uint160(uint256(entries[i].topics[3]))), borrower); // borrower is indexed
@@ -281,7 +287,6 @@ contract RequestTests is LendingProtocolBaseTest { // Inherit from base
 
         vm.stopPrank();
     }
-
 
     // Add more failure cases for acceptLoanRequest:
     // - test_Req_acceptLoanRequest_Fail_RequestInactive

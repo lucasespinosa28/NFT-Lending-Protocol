@@ -21,7 +21,9 @@ contract AdminTests is LendingProtocolBaseTest {
         // No specific event is defined in AdminManager or LendingProtocol for this setter,
         // so we just check the state change.
         lendingProtocol.setCurrencyManager(newCurrencyManagerAddr);
-        assertEq(address(lendingProtocol.currencyManager()), newCurrencyManagerAddr, "CurrencyManager should be updated");
+        assertEq(
+            address(lendingProtocol.currencyManager()), newCurrencyManagerAddr, "CurrencyManager should be updated"
+        );
         vm.stopPrank();
     }
 
@@ -45,8 +47,12 @@ contract AdminTests is LendingProtocolBaseTest {
         lendingProtocol.emergencyWithdrawERC20(address(weth), owner, amountToWithdraw);
         vm.stopPrank();
 
-        assertEq(weth.balanceOf(owner), initialBalanceRecipient + amountToWithdraw, "Owner should receive withdrawn WETH");
-        assertEq(weth.balanceOf(address(lendingProtocol)), initialBalanceLP - amountToWithdraw, "LP balance should decrease");
+        assertEq(
+            weth.balanceOf(owner), initialBalanceRecipient + amountToWithdraw, "Owner should receive withdrawn WETH"
+        );
+        assertEq(
+            weth.balanceOf(address(lendingProtocol)), initialBalanceLP - amountToWithdraw, "LP balance should decrease"
+        );
     }
 
     function test_Fail_EmergencyWithdrawERC20_NotOwner() public {
@@ -99,7 +105,9 @@ contract AdminTests is LendingProtocolBaseTest {
 
         // Recipient's balance should increase by amountToWithdraw. Gas costs make exact checks tricky for sender.
         assertEq(owner.balance, initialBalanceRecipient + amountToWithdraw, "Owner should receive withdrawn ETH");
-        assertEq(address(lendingProtocol).balance, initialBalanceLP - amountToWithdraw, "LP ETH balance should decrease");
+        assertEq(
+            address(lendingProtocol).balance, initialBalanceLP - amountToWithdraw, "LP ETH balance should decrease"
+        );
     }
 
     function test_Fail_EmergencyWithdrawNative_NotOwner() public {
