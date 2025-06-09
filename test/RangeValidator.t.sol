@@ -19,7 +19,7 @@ contract RangeValidatorTest is Test {
         mockNft = new ERC721Mock("MockNFT_For_RangeValidator", "MNFT_RV");
     }
 
-    function test_InitialState() public {
+    function test_InitialState() public view {
         assertEq(rangeValidator.owner(), admin, "Owner not set");
     }
 

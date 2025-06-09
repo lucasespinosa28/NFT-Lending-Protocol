@@ -67,8 +67,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         return IPurchaseBundler(address(0));
     }
 
-    function _getLoanOffer(bytes32 offerId) internal view virtual returns (ILendingProtocol.LoanOffer memory) {
-        /* revert("LM: OfferManager not set"); */
+    function _getLoanOffer(bytes32) internal view virtual returns (ILendingProtocol.LoanOffer memory) {
         return ILendingProtocol.LoanOffer({
             offerId: bytes32(0),
             lender: address(0),
@@ -89,21 +88,23 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         });
     }
 
-    function _setLoanOfferInactive(bytes32 offerId) internal virtual { /* revert("LM: OfferManager not set"); */ }
+    function _setLoanOfferInactive(bytes32) internal virtual {
+        revert("LM: OfferManager not set");
+    }
 
     // --- Virtual functions for RequestManager interaction (to be implemented by LendingProtocol) ---
-    function _getLoanRequest(bytes32 requestId) internal view virtual returns (ILendingProtocol.LoanRequest memory) {
+    function _getLoanRequest(bytes32) internal view virtual returns (ILendingProtocol.LoanRequest memory) {
         revert("LM: Bridge for getLoanRequest not implemented");
     }
 
-    function _setLoanRequestInactive(bytes32 requestId) internal virtual {
+    function _setLoanRequestInactive(bytes32) internal virtual {
         revert("LM: Bridge for _setLoanRequestInactive not implemented");
     }
 
     // --- Functions ---
 
     function acceptLoanOffer(bytes32 offerId, address nftContract, uint256 nftTokenId)
-        public // Changed to public
+        public
         virtual
         nonReentrant
         returns (bytes32 loanId)
@@ -360,6 +361,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
 
     function onERC721Received(address, /*operator*/ address, /*from*/ uint256, /*tokenId*/ bytes calldata /*data*/ )
         external
+        pure
         override
         returns (bytes4)
     {
@@ -375,8 +377,8 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         require(request.expirationTimestamp > block.timestamp, "LM: Loan request expired");
         require(msg.sender != request.borrower, "LM: Lender cannot be borrower");
         // Ensure currency is supported (though request creation should check this, good to double check if currencyManager is accessible)
-        // ICurrencyManager currencyManager = _getCurrencyManager();
-        // require(currencyManager.isCurrencySupported(request.currency), "LM: Currency not supported");
+        ICurrencyManager currencyManager = _getCurrencyManager();
+        require(currencyManager.isCurrencySupported(request.currency), "LM: Currency not supported");
 
         // Check NFT ownership by the borrower
         require(

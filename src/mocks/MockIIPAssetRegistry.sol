@@ -34,27 +34,28 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
 
     function setRegistrationFee(address, /*treasury*/ address, /*feeToken*/ uint96 /*feeAmount*/ ) external override {
         // Emit RegistrationFeeSet event (optional)
+        return;
     }
     // aderyn-fp-next-line(empty-block)
 
-    function totalSupply() external view override returns (uint256) {
+    function totalSupply() external pure override returns (uint256) {
         return 0; // Mocked value
     }
     // aderyn-fp-next-line(empty-block)
 
     function upgradeIPAccountImpl(address /*newIpAccountImpl*/ ) external override {
-        // Mocked
+        return;
     }
 
-    function getTreasury() external view override returns (address) {
+    function getTreasury() external pure override returns (address) {
         return address(0); // Mocked value
     }
 
-    function getFeeToken() external view override returns (address) {
+    function getFeeToken() external pure override returns (address) {
         return address(0); // Mocked value
     }
 
-    function getFeeAmount() external view override returns (uint96) {
+    function getFeeAmount() external pure override returns (uint96) {
         return 0; // Mocked value
     }
 
@@ -62,14 +63,14 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
 
     function ipAccount(uint256, /*chainId*/ address, /*tokenContract*/ uint256 /*tokenId*/ )
         external
-        view
+        pure
         override
         returns (address)
     {
         return address(0); // Mocked value, could be a mock IPAccount if needed
     }
 
-    function getIPAccountImpl() external view override returns (address) {
+    function getIPAccountImpl() external pure override returns (address) {
         return address(0); // Mocked value
     }
 
@@ -78,19 +79,4 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
     function computeIpId(uint256 chainId, address tokenContract, uint256 tokenId) public pure returns (address) {
         return address(uint160(uint256(keccak256(abi.encodePacked(chainId, tokenContract, tokenId)))));
     }
-
-    // --- Removed Functions Not in IIPAssetRegistry or IIPAccountRegistry ---
-    // EXPIRY_NEVER, POLICY_FRAMEWORK_MANAGER_HOOK_TAG, etc. (all TAG functions)
-    // attachLicenseTerms (both overloads)
-    // initialize
-    // owner
-    // pause, paused, unpause
-    // proxiableUUID
-    // register (overloaded version with string URI etc.)
-    // registerDerivative, registerDerivativeWithLicenseTokens
-    // setBaseURI, setBeneficiary, setRoyaltyPolicy, setTokenContract
-    // supportsInterface
-    // upgradeToAndCall
-    // metadata, beneficiaryOf, parentIpIdsOf, childIpIdsOf, royaltyPolicyOf
-    // tokenContractOf, tokenIdOf, chainIdOf, uri, exists
 }

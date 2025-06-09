@@ -5,7 +5,7 @@ import {LendingProtocolBaseTest} from "./LendingProtocolBase.t.sol";
 // No specific ILendingProtocol structs needed for this test usually
 
 contract InitialSetupTests is LendingProtocolBaseTest {
-    function test_InitialSetup() public {
+    function test_InitialSetup() public view {
         assertTrue(address(weth) != address(0), "WETH not deployed");
         assertTrue(address(usdc) != address(0), "USDC not deployed");
         assertTrue(address(mockNft) != address(0), "MockNFT not deployed");

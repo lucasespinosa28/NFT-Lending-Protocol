@@ -73,7 +73,7 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
     {
         require(originalContract != address(0), "Original contract zero address");
 
-        // Check with Story Protocol IIPAssetRegistry
+        // External read-only calls are acceptable here
         address retrievedIpId = iipAssetRegistry.ipId(block.chainid, originalContract, originalTokenId);
         if (retrievedIpId != address(0)) {
             require(
@@ -178,11 +178,7 @@ contract Stash is IStash, ERC721, Ownable, IERC721Receiver {
     /**
      * @notice Handles receipt of ERC721 tokens.
      */
-    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
-        external
-        override
-        returns (bytes4)
-    {
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
 
