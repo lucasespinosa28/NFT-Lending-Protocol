@@ -32,7 +32,7 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
     }
     // aderyn-fp-next-line(empty-block)
 
-    function setRegistrationFee(address, /*treasury*/ address, /*feeToken*/ uint96 /*feeAmount*/ ) external override {
+    function setRegistrationFee(address, /*treasury*/ address, /*feeToken*/ uint96 /*feeAmount*/ ) external pure override {
         // Emit RegistrationFeeSet event (optional)
         return;
     }
@@ -43,7 +43,7 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
     }
     // aderyn-fp-next-line(empty-block)
 
-    function upgradeIPAccountImpl(address /*newIpAccountImpl*/ ) external override {
+    function upgradeIPAccountImpl(address /*newIpAccountImpl*/ ) external pure override {
         return;
     }
 

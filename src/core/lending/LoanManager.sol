@@ -43,27 +43,27 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
     // --- External Dependencies (assumed to be available from inheriting contract e.g. LendingProtocol) ---
     // These functions will be overridden in LendingProtocol to return its state variables.
     function _getCurrencyManager() internal view virtual returns (ICurrencyManager) {
-        /* revert("LM: CurrencyManager not set"); */
+        // revert("LM: CurrencyManager not set");
         return ICurrencyManager(address(0));
     }
 
     function _getCollectionManager() internal view virtual returns (ICollectionManager) {
-        /* revert("LM: CollectionManager not set"); */
+        // revert("LM: CollectionManager not set");
         return ICollectionManager(address(0));
     }
 
     function _getIpAssetRegistry() internal view virtual returns (IIPAssetRegistry) {
-        /* revert("LM: IPAssetRegistry not set"); */
+        // revert("LM: IPAssetRegistry not set");
         return IIPAssetRegistry(address(0));
     }
 
     function _getRoyaltyManager() internal view virtual returns (IRoyaltyManager) {
-        /* revert("LM: RoyaltyManager not set"); */
+        // revert("LM: RoyaltyManager not set");
         return IRoyaltyManager(address(0));
     }
 
     function _getPurchaseBundler() internal view virtual returns (IPurchaseBundler) {
-        /* revert("LM: PurchaseBundler not set"); */
+        // revert("LM: PurchaseBundler not set");
         return IPurchaseBundler(address(0));
     }
 
@@ -89,16 +89,28 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
     }
 
     function _setLoanOfferInactive(bytes32) internal virtual {
-        revert("LM: OfferManager not set");
+        // revert("LM: OfferManager not set");
     }
 
     // --- Virtual functions for RequestManager interaction (to be implemented by LendingProtocol) ---
     function _getLoanRequest(bytes32) internal view virtual returns (ILendingProtocol.LoanRequest memory) {
-        revert("LM: Bridge for getLoanRequest not implemented");
+        // revert("LM: Bridge for getLoanRequest not implemented");
+        return ILendingProtocol.LoanRequest({
+            requestId: bytes32(0),
+            borrower: address(0),
+            nftContract: address(0),
+            nftTokenId: 0,
+            currency: address(0),
+            principalAmount: 0,
+            interestRateAPR: 0,
+            durationSeconds: 0,
+            expirationTimestamp: 0,
+            isActive: false
+        });
     }
 
     function _setLoanRequestInactive(bytes32) internal virtual {
-        revert("LM: Bridge for _setLoanRequestInactive not implemented");
+        // revert("LM: Bridge for _setLoanRequestInactive not implemented");
     }
 
     // --- Functions ---
@@ -114,7 +126,7 @@ contract LoanManager is ReentrancyGuard, IERC721Receiver {
         require(offer.expirationTimestamp > block.timestamp, "Offer expired");
         require(msg.sender != offer.lender, "Cannot accept own offer");
 
-        ICurrencyManager currencyManager = _getCurrencyManager();
+        // ICurrencyManager currencyManager = _getCurrencyManager(); // Unused
         ICollectionManager collectionManager = _getCollectionManager();
         IIPAssetRegistry ipAssetRegistry = _getIpAssetRegistry();
 
