@@ -10,29 +10,44 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  * @notice Manages whitelisted NFT collections for collateral.
  * @dev Implements ICollectionManager. This is a placeholder implementation.
  */
-
+// aderyn-ignore-next-line(centralization-risk)
 contract CollectionManager is ICollectionManager, Ownable, ReentrancyGuard {
     mapping(address => bool) private whitelistedCollections;
     address[] private collectionList;
     // mapping(address => uint256) public collectionMaxLTVs; // Example for LTV
 
-    constructor(address owner, address[] memory initialCollections) Ownable(owner) {
+    constructor(
+        address owner,
+        address[] memory initialCollections
+    ) Ownable(owner) {
         for (uint256 i = 0; i < initialCollections.length; i++) {
             _addWhitelistedCollection(initialCollections[i]);
         }
     }
 
-    function isCollectionWhitelisted(address collectionAddress) external view override returns (bool) {
+    function isCollectionWhitelisted(
+        address collectionAddress
+    ) external view override returns (bool) {
         return whitelistedCollections[collectionAddress];
     }
-
-    function addWhitelistedCollection(address collectionAddress) external override onlyOwner {
+    // aderyn-ignore-next-line(centralization-risk)
+    function addWhitelistedCollection(
+        address collectionAddress
+    )
+        external
+        override
+        // aderyn-ignore-next-line(centralization-risk)
+        onlyOwner
+    {
         _addWhitelistedCollection(collectionAddress);
     }
 
     function _addWhitelistedCollection(address collectionAddress) private {
         require(collectionAddress != address(0), "Zero address");
-        require(!whitelistedCollections[collectionAddress], "Collection already whitelisted");
+        require(
+            !whitelistedCollections[collectionAddress],
+            "Collection already whitelisted"
+        );
 
         uint256 codeSize;
         assembly {
@@ -52,9 +67,19 @@ contract CollectionManager is ICollectionManager, Ownable, ReentrancyGuard {
         emit CollectionWhitelisted(collectionAddress);
     }
 
-    function removeWhitelistedCollection(address collectionAddress) external override onlyOwner {
+    function removeWhitelistedCollection(
+        address collectionAddress
+    )
+        external
+        override
+        // aderyn-ignore-next-line(centralization-risk)
+        onlyOwner
+    {
         require(collectionAddress != address(0), "Zero address");
-        require(whitelistedCollections[collectionAddress], "Collection not whitelisted");
+        require(
+            whitelistedCollections[collectionAddress],
+            "Collection not whitelisted"
+        );
 
         whitelistedCollections[collectionAddress] = false;
 
@@ -68,19 +93,12 @@ contract CollectionManager is ICollectionManager, Ownable, ReentrancyGuard {
         emit CollectionRemoved(collectionAddress);
     }
 
-    function getWhitelistedCollections() external view override returns (address[] memory) {
+    function getWhitelistedCollections()
+        external
+        view
+        override
+        returns (address[] memory)
+    {
         return collectionList;
     }
-
-    // Example LTV function
-    // function setCollectionMaxLTV(address collectionAddress, uint256 maxLTV) external override onlyOwner {
-    //     require(whitelistedCollections[collectionAddress], "Collection not whitelisted");
-    //     require(maxLTV <= 10000, "LTV too high (max 10000 for 100%)"); // e.g. 7500 for 75%
-    //     collectionMaxLTVs[collectionAddress] = maxLTV;
-    //     emit CollectionParametersSet(collectionAddress, maxLTV);
-    // }
-
-    // function getCollectionMaxLTV(address collectionAddress) external view override returns (uint256) {
-    //     return collectionMaxLTVs[collectionAddress];
-    // }
 }
